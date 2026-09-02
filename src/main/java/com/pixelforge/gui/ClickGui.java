@@ -6,6 +6,7 @@ import com.pixelforge.module.Category;
 import com.pixelforge.module.Module;
 import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Screen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
@@ -16,7 +17,7 @@ import java.util.Locale;
 /** Compact PixelForge ClickGUI: sidebar -> modules -> interactive settings. */
 public class ClickGui extends Screen {
     private final List<Category> categories=new ArrayList<>(); private Category selectedCategory; private Module selectedModule; private TextFieldWidget searchField; private int moduleScroll; private boolean waitingForKey;
-    private static final int BG=0xF20A0D15,PANEL=0xF0141925,ACCENT=0xFF6D7CFF,TEXT=0xFFEAF0FF,DIM=0xFF8490AA,GREEN=0xFF5BE58A,RED=0xFFFF6575;
+    private static final int BG=0xF20A0D15,PANEL=0xF0141925,ACCENT=0xFF6D7CFF,TEXT=0xFFEAF0FF,DIM=0xFF8490AA,GREEN=0xFF5BE58A;
     private int left,top,cw,ch,side,mid,right;
     public ClickGui(){super(Text.literal("PixelForge ClickGUI"));for(Category c:Category.values())if(c!=Category.SYSTEM)categories.add(c);if(!categories.isEmpty())selectedCategory=categories.get(0);}
     @Override protected void init(){searchField=new TextFieldWidget(textRenderer,0,0,160,18,Text.literal("Search"));searchField.setPlaceholder(Text.literal("Search modules..."));searchField.setMaxLength(40);addDrawableChild(searchField);layout();}
@@ -28,7 +29,7 @@ public class ClickGui extends Screen {
         int rx=left+side+mid;RenderUtil.fill(c,rx,top+34,left+cw,top+ch,0xE5121825);if(selectedModule==null){RenderUtil.drawText(c,textRenderer,"Select a module",rx+16,top+58,DIM,false);RenderUtil.drawText(c,textRenderer,"Settings appear here when selected.",rx+16,top+78,DIM,false);}else renderSettings(c,rx);
         RenderUtil.fill(c,left+10,top+ch-28,left+110,top+ch-8,0x303B5BDB);RenderUtil.drawBorder(c,left+10,top+ch-28,100,20,0xFF394A79);RenderUtil.drawText(c,textRenderer,"HUD Editor",left+25,top+ch-22,ACCENT,false);RenderUtil.drawText(c,textRenderer,"Scroll modules · click module for settings",left+side+10,top+ch-18,DIM,false);super.render(c,mx,my,d);
     }
-    private void renderSettings(DrawContext c,int rx){RenderUtil.drawText(c,textRenderer,selectedModule.getName(),rx+16,top+48,TEXT,false);RenderUtil.drawText(c,textRenderer,selectedModule.getDescription(),rx+16,top+67,DIM,false);int y=top+92;button(c,rx+16,y,left+cw-16,24,"Enabled",selectedModule.isEnabled());y+=32;button(c,rx+16,y,left+cw-16,24,waitingForKey?"Press a key...":"Keybind: "+(selectedModule.getKeybind()<0?"None":selectedModule.getKeybind()),false);y+=34;for(Module.Setting<?> s:selectedModule.getSettings()){Object v=s.get();RenderUtil.drawText(c,textRenderer,s.getName(),rx+16,y,DIM,false);if(v instanceof Boolean b){button(c,left+cw-92,y-6,left+cw-16,20,b?"ON":"OFF",b);}else if(v instanceof Number n){double min=0,max=numberMax(n),val=n.doubleValue();int bx=rx+80,bw=Math.max(70,right-112);RenderUtil.fill(c,bx,y+3,bx+bw,y+6,0x403B5BDB);int knob=bx+(int)(bw*Math.max(0,Math.min(1,(val-min)/Math.max(.0001,max-min))));RenderUtil.fill(c,knob-3,y,knob+4,y+9,ACCENT);RenderUtil.drawText(c,textRenderer,String.valueOf(v),left+cw-62,y,ACCENT,false);}else RenderUtil.drawText(c,textRenderer,String.valueOf(v),left+cw-110,y,ACCENT,false);y+=28;if(y>top+ch-45)break;}}
+    private void renderSettings(DrawContext c,int rx){int panelW=left+cw-rx-16;RenderUtil.drawText(c,textRenderer,selectedModule.getName(),rx+16,top+48,TEXT,false);RenderUtil.drawText(c,textRenderer,selectedModule.getDescription(),rx+16,top+67,DIM,false);int y=top+92;button(c,rx+16,y,panelW,24,"Enabled",selectedModule.isEnabled());y+=32;button(c,rx+16,y,panelW,24,waitingForKey?"Press a key...":"Keybind: "+(selectedModule.getKeybind()<0?"None":selectedModule.getKeybind()),false);y+=34;for(Module.Setting<?> s:selectedModule.getSettings()){Object v=s.get();RenderUtil.drawText(c,textRenderer,s.getName(),rx+16,y,DIM,false);if(v instanceof Boolean b){button(c,left+cw-92,y-6,76,20,b?"ON":"OFF",b);}else if(v instanceof Number n){double max=numberMax(n),val=n.doubleValue();int bx=rx+80,bw=Math.max(70,panelW-120);RenderUtil.fill(c,bx,y+3,bx+bw,y+6,0x403B5BDB);int knob=bx+(int)(bw*Math.max(0,Math.min(1,val/Math.max(.0001,max))));RenderUtil.fill(c,knob-3,y,knob+4,y+9,ACCENT);RenderUtil.drawText(c,textRenderer,String.valueOf(v),left+cw-62,y,ACCENT,false);}else RenderUtil.drawText(c,textRenderer,String.valueOf(v),left+cw-110,y,ACCENT,false);y+=28;if(y>top+ch-45)break;}}
     private double numberMax(Number n){return Math.max(1,Math.abs(n.doubleValue())*2);}
     private void button(DrawContext c,int x,int y,int w,int h,String label,boolean on){RenderUtil.fill(c,x,y,x+w,y+h,on?0x453B5BDB:0x1C1E2540);RenderUtil.drawBorder(c,x,y,w,h,on?ACCENT:0xFF273453);RenderUtil.drawText(c,textRenderer,label,x+10,y+7,on?TEXT:DIM,false);}
     private void panel(DrawContext c,int x,int y,int w,int h,int fill,int border){RenderUtil.fill(c,x,y,x+w,y+h,fill);RenderUtil.drawBorder(c,x,y,w,h,border);}
