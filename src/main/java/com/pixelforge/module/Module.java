@@ -6,6 +6,7 @@ import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.option.ParticlesMode;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -46,19 +47,20 @@ public abstract class Module {
             default -> {}
         }
     }
+    private boolean isFood(ItemStack stack){return !stack.isEmpty()&&stack.get(DataComponentTypes.FOOD)!=null;}
     private void autoEat(){
         if(mc.interactionManager==null||mc.player==null)return;
         if(autoEatSlot>=0){
             ItemStack active=mc.player.getInventory().getStack(autoEatSlot);
             if(mc.player.isUsingItem())return;
-            if(active.isEmpty()||!active.isFood()){stopAutoEat();return;}
+            if(!isFood(active)){stopAutoEat();return;}
             if(mc.player.getHungerManager().getFoodLevel()>=20){stopAutoEat();return;}
         } else if(mc.player.isUsingItem()||mc.player.getHungerManager().getFoodLevel()>=14)return;
 
         int best=-1;
         for(int i=0;i<9;i++){
             ItemStack s=mc.player.getInventory().getStack(i);
-            if(!s.isEmpty()&&s.isFood()){
+            if(isFood(s)){
                 best=i;
                 break;
             }
@@ -72,7 +74,7 @@ public abstract class Module {
     }
     private void stopAutoEat(){
         if(mc==null||mc.player==null){autoEatSlot=-1;autoEatPreviousSlot=-1;return;}
-        if(autoEatSlot>=0&&mc.player.getInventory().getSelectedSlot()==autoEatSlot&&autoEatPreviousSlot>=0&&autoEatPreviousSlot<9){
+        if(autoEatSlot>=0&&autoEatPreviousSlot>=0&&autoEatPreviousSlot<9){
             mc.player.getInventory().setSelectedSlot(autoEatPreviousSlot);
         }
         autoEatSlot=-1;
