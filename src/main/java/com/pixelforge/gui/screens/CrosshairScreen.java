@@ -14,10 +14,8 @@ public class CrosshairScreen extends Screen {
     private static final int ACCENT=0xFF3B5BDB,TEXT=0xFFE8ECFF,DIM=0xFF8993AC,PANEL=0xE8141928;
     private static final int[] COLORS={0xFFFFFFFF,0xFFFF5555,0xFF55FF55,0xFF5555FF,0xFFFFFF55,0xFFFF55FF,0xFF55FFFF,0xFFFFAA00};
     private static final String[] STYLE_NAMES={"Cross","Dot","Circle","Cross + Dot","Gap","Custom"};
-
     public CrosshairScreen(Screen parent){super(Text.literal("PixelForge Crosshair Editor"));this.parent=parent;}
     private CustomCrosshairModule mod(){if(PixelForgeClient.getInstance()==null)return null;return PixelForgeClient.getInstance().getModuleManager().getModule(CustomCrosshairModule.class);}
-
     @Override public void render(DrawContext c,int mx,int my,float d){
         RenderUtil.fill(c,0,0,width,height,0xFF080B12);RenderUtil.fill(c,0,0,width,36,0xF00A0E18);RenderUtil.drawText(c,textRenderer,"CROSSHAIR EDITOR",16,12,TEXT,false);
         CustomCrosshairModule m=mod();if(m==null){RenderUtil.drawText(c,textRenderer,"Custom Crosshair module is unavailable",16,54,0xFFFF6666,false);return;}
@@ -31,18 +29,16 @@ public class CrosshairScreen extends Screen {
         if(m.getStyle()==CustomCrosshairModule.Style.CUSTOM){RenderUtil.drawText(c,textRenderer,"CUSTOM ARMS",px+14,row+5,ACCENT,false);row+=24;row=slider(c,px+14,row,"Top",m.getCustomTop(),0,24,4,mx,my);row=slider(c,px+14,row,"Bottom",m.getCustomBottom(),0,24,5,mx,my);row=slider(c,px+14,row,"Left",m.getCustomLeft(),0,24,6,mx,my);row=slider(c,px+14,row,"Right",m.getCustomRight(),0,24,7,mx,my);toggle(c,px+14,row,"Center dot",m.isCustomDot());}
         RenderUtil.drawText(c,textRenderer,"Drag sliders · click styles/colors · ESC back",16,height-12,DIM,false);super.render(c,mx,my,d);
     }
-
     private int slider(DrawContext c,int x,int y,String label,int value,int min,int max,int id,int mx,int my){RenderUtil.drawText(c,textRenderer,label,x,y,DIM,false);RenderUtil.drawText(c,textRenderer,String.valueOf(value),x+68,y,0xFF748FFF,false);int bx=x+105,bw=Math.max(100,width-x-135);RenderUtil.fill(c,bx,y+2,bx+bw,y+6,0x403B5BDB);int knob=bx+(int)(bw*((value-min)/(double)Math.max(1,max-min)));RenderUtil.fill(c,bx,y+1,knob+1,y+7,ACCENT);RenderUtil.fill(c,knob-3,y,knob+4,y+8,0xFFFFFFFF);return y+26;}
     private int toggle(DrawContext c,int x,int y,String label,boolean on){RenderUtil.drawText(c,textRenderer,label,x,y,DIM,false);RenderUtil.drawText(c,textRenderer,on?"ON":"OFF",x+115,y,on?0xFF55E58A:0xFFFF6666,false);return y+22;}
-
-    private void setSlider(CustomCrosshairModule m,int id,double mouseX){int[] vals={m.getSize(),m.getThickness(),m.getGap(),m.getOpacity(),m.getCustomTop(),m.getCustomBottom(),m.getCustomLeft(),m.getCustomRight()};int[] mins={1,1,0,0,0,0,0,0};int[] maxs={32,8,16,255,24,24,24,24};int x=414,bw=Math.max(100,width-549);int v=(int)Math.round(mins[id]+Math.max(0,Math.min(1,(mouseX-x)/(double)Math.max(1,bw)))*(maxs[id]-mins[id]));switch(id){case 0->m.setSize(v);case 1->m.setThickness(v);case 2->m.setGap(v);case 3->m.setOpacity(v);case 4->m.setCustomTop(v);case 5->m.setCustomBottom(v);case 6->m.setCustomLeft(v);case 7->m.setCustomRight(v);}}
-
+    private void setSlider(CustomCrosshairModule m,int id,double mouseX){int[] mins={1,1,0,0,0,0,0,0};int[] maxs={32,8,16,255,24,24,24,24};int x=505,bw=Math.max(100,width-535);int v=(int)Math.round(mins[id]+Math.max(0,Math.min(1,(mouseX-x)/(double)Math.max(1,bw)))*(maxs[id]-mins[id]));switch(id){case 0->m.setSize(v);case 1->m.setThickness(v);case 2->m.setGap(v);case 3->m.setOpacity(v);case 4->m.setCustomTop(v);case 5->m.setCustomBottom(v);case 6->m.setCustomLeft(v);case 7->m.setCustomRight(v);}}
     @Override public boolean mouseClicked(Click click,boolean doubled){
         CustomCrosshairModule m=mod();if(m==null)return super.mouseClicked(click,doubled);double mx=click.x(),my=click.y();int b=click.button();
         if(mx>=26&&mx<=196&&my>=78&&my<240&&b==0){int i=(int)((my-78)/27);if(i>=0&&i<6)m.setStyle(CustomCrosshairModule.Style.values()[i]);return true;}
         int px=414,py=86;int[] rows={py,py+26,py+52,py+78};for(int i=0;i<4;i++)if(my>=rows[i]&&my<=rows[i]+14&&mx>=px-5){activeSlider=i;setSlider(m,i,mx);return true;}
         int row=py+104;int cx=472;for(int col:COLORS){if(mx>=cx&&mx<=cx+18&&my>=row&&my<=row+18){m.setColor(col);return true;}cx+=25;}row+=30;
         if(my>=row&&my<=row+18&&mx>=px){m.setOutline(!m.isOutline());return true;}row+=22;if(my>=row&&my<=row+18&&mx>=px){m.setReplaceVanilla(!m.isReplaceVanilla());return true;}row+=22;if(my>=row&&my<=row+18&&mx>=px){m.setEnabled(!m.isEnabled());return true;}
+        if(m.getStyle()==CustomCrosshairModule.Style.CUSTOM){row+=22+24;for(int i=4;i<=7;i++){if(my>=row&&my<=row+14&&mx>=px-5){activeSlider=i;setSlider(m,i,mx);return true;}row+=26;}if(my>=row&&my<=row+18&&mx>=px){m.setCustomDot(!m.isCustomDot());return true;}}
         return super.mouseClicked(click,doubled);
     }
     @Override public boolean mouseDragged(Click click,double ox,double oy){if(activeSlider>=0&&click.button()==0){CustomCrosshairModule m=mod();if(m!=null){setSlider(m,activeSlider,click.x());return true;}}return super.mouseDragged(click,ox,oy);}
