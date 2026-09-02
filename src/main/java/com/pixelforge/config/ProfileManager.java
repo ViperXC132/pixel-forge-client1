@@ -8,10 +8,6 @@ import com.pixelforge.module.modules.utility.*;
 import com.pixelforge.module.modules.visual.*;
 import com.pixelforge.module.modules.performance.*;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-
 /**
  * Prebuilt + user profiles.
  * Built-in: PvP, Survival, Minigames, UHC, SMP
@@ -27,7 +23,6 @@ public final class ProfileManager {
     }
 
     public static void loadProfile(String name) {
-        // First disable everything non-essential
         for (Module m : PixelForgeClient.getInstance().getModuleManager().getModules()) {
             if (m.getCategory() == com.pixelforge.module.Category.SYSTEM) continue;
             m.setEnabled(false);
@@ -49,7 +44,6 @@ public final class ProfileManager {
     }
 
     private static void applyPvp() {
-        // Combat focused HUD + movement
         enable(FpsModule.class);
         enable(CpsModule.class);
         enable(CoordsModule.class);
@@ -79,7 +73,6 @@ public final class ProfileManager {
         enable(SpeedModule.class);
         enable(ToggleSprintModule.class);
         enable(AutoToolModule.class);
-        enable(AutoEatModule.class);
         enable(FullbrightModule.class);
         enable(CustomCrosshairModule.class);
         enable(DynamicFpsModule.class);
