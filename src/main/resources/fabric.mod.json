@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "pixelforge",
+  "version": "1.0.0",
+  "name": "PixelForge",
+  "description": "Lunar Client-style utility and QoL mod for Fabric. Clean HUD, visuals, utilities, performance tools and PvP trainer. No cheats.",
+  "authors": [
+    "ViperXC132"
+  ],
+  "contact": {
+    "homepage": "https://github.com/ViperXC132/pixel-forge-client",
+    "sources": "https://github.com/ViperXC132/pixel-forge-client",
+    "issues": "https://github.com/ViperXC132/pixel-forge-client/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/pixelforge/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.pixelforge.PixelForgeClient"
+    ]
+  },
+  "mixins": [
+    "pixelforge.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
