@@ -3,14 +3,14 @@
   "id": "pixelforge",
   "version": "1.0.0",
   "name": "PixelForge",
-  "description": "Lunar Client-style utility and QoL mod for Fabric. Clean HUD, visuals, utilities, performance tools and PvP trainer. No cheats.",
+  "description": "Lunar-style utility and QoL client for Fabric 1.21.11 with configurable HUD, visuals, performance tools, account management and PvP training features.",
   "authors": [
     "ViperXC132"
   ],
   "contact": {
-    "homepage": "https://github.com/ViperXC132/pixel-forge-client",
-    "sources": "https://github.com/ViperXC132/pixel-forge-client",
-    "issues": "https://github.com/ViperXC132/pixel-forge-client/issues"
+    "homepage": "https://github.com/ViperXC132/pixel-forge-client1",
+    "sources": "https://github.com/ViperXC132/pixel-forge-client1",
+    "issues": "https://github.com/ViperXC132/pixel-forge-client1/issues"
   },
   "license": "MIT",
   "icon": "assets/pixelforge/icon.png",
