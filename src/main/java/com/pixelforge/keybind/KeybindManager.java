@@ -3,33 +3,39 @@ package com.pixelforge.keybind;
 import com.pixelforge.PixelForgeClient;
 import com.pixelforge.module.Module;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
+/** Handles edge-triggered module keybinds without conflicts between modules sharing a key. */
 public class KeybindManager {
 
-    private final Map<Integer, Boolean> previousStates = new HashMap<>();
+    private final Map<Module, Boolean> previousStates = new IdentityHashMap<>();
 
     public void init() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (client.currentScreen != null) return;
+            if (client.currentScreen != null) {
+                previousStates.clear();
+                return;
+            }
 
             long window = client.getWindow().getHandle();
-
             for (Module module : PixelForgeClient.getInstance().getModuleManager().getModules()) {
                 int key = module.getKeybind();
                 if (key <= 0) continue;
 
                 boolean down = GLFW.glfwGetKey(window, key) == GLFW.GLFW_PRESS;
-                boolean wasDown = previousStates.getOrDefault(key, false);
+                boolean wasDown = previousStates.getOrDefault(module, false);
 
                 if (down && !wasDown) {
-                    module.toggle();
+                    try {
+                        module.toggle();
+                    } catch (Throwable t) {
+                        PixelForgeClient.LOGGER.error("Keybind failed for module {}", module.getName(), t);
+                    }
                 }
-                previousStates.put(key, down);
+                previousStates.put(module, down);
             }
         });
     }
@@ -47,6 +53,9 @@ public class KeybindManager {
             case GLFW.GLFW_KEY_RIGHT_ALT -> "RALT";
             case GLFW.GLFW_KEY_TAB -> "TAB";
             case GLFW.GLFW_KEY_CAPS_LOCK -> "CAPS";
+            case GLFW.GLFW_KEY_SPACE -> "SPACE";
+            case GLFW.GLFW_KEY_ENTER -> "ENTER";
+            case GLFW.GLFW_KEY_ESCAPE -> "ESC";
             default -> "KEY" + key;
         };
     }
