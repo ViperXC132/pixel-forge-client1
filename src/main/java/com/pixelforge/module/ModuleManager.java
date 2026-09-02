@@ -34,8 +34,8 @@ public class ModuleManager {
         register(new ZoomModule()); register(new FreeLookModule()); register(new AutoRespawnModule());
         register(new AntiBlindModule()); register(new NoHurtCamModule()); register(new BetterChatModule());
         register(new FastPlaceModule()); register(new MidClickModule()); register(new AutoToolModule());
-        register(new AutoEatModule()); register(new PotionAlertModule()); register(new BorderAlertModule());
-        register(new ServerInfoModule()); register(new TabListModule()); register(new ScreenshotManagerModule());
+        register(new PotionAlertModule()); register(new BorderAlertModule()); register(new ServerInfoModule());
+        register(new TabListModule()); register(new ScreenshotManagerModule());
 
         register(new ToggleSprintModule()); register(new ToggleSneakModule());
 
