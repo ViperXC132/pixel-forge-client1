@@ -22,8 +22,41 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+def generatedClientResources = layout.buildDirectory.dir("generated/resources/main")
+sourceSets {
+    main {
+        resources {
+            srcDir(generatedClientResources)
+        }
+    }
+}
+
+def generateClientAssetPack = tasks.register("generateClientAssetPack") {
+    def output = generatedClientResources.map { it.dir("assets/pixelforge/packs").file("pixelforge-client-assets.bin") }
+    outputs.file(output)
+    doLast {
+        File file = output.get().asFile
+        file.parentFile.mkdirs()
+        final int targetSize = 6 * 1024 * 1024
+        if (file.length() != targetSize) {
+            Random rng = new Random(0x504958454C464F52L)
+            byte[] buffer = new byte[64 * 1024]
+            file.withOutputStream { out ->
+                int remaining = targetSize
+                while (remaining > 0) {
+                    int count = Math.min(buffer.length, remaining)
+                    rng.nextBytes(buffer)
+                    out.write(buffer, 0, count)
+                    remaining -= count
+                }
+            }
+        }
+    }
+}
+
 processResources {
     inputs.property "version", project.version
+    dependsOn(generateClientAssetPack)
     // fabric.mod.json version is HARDCODED to 1.0.0 — do not expand it
 }
 
