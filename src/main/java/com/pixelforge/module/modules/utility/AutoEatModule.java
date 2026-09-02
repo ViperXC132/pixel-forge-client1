@@ -6,7 +6,6 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 
 public class AutoEatModule extends Module {
-
     private final int hungerThreshold = 14;
 
     public AutoEatModule() {
@@ -22,7 +21,7 @@ public class AutoEatModule extends Module {
         for (int i = 0; i < 9; i++) {
             ItemStack stack = mc.player.getInventory().getStack(i);
             if (stack.contains(DataComponentTypes.FOOD)) {
-                mc.player.getInventory().selectedSlot = i;
+                mc.player.getInventory().setSelectedSlot(i);
                 mc.options.useKey.setPressed(true);
                 return;
             }
