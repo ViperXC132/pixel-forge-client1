@@ -12,7 +12,7 @@ A Lunar/Axolotl-style Fabric utility client for **Minecraft 1.21.11** focused on
 - Custom crosshair renderer with multiple styles, color, opacity, outline and sizing controls
 - Account management and Microsoft/legacy session helpers
 - Modrinth browsing/install support
-- Fullbright, NoHurtCam, Zoom, AutoTool, AutoEat, ToggleSprint and utility tools
+- Fullbright, NoHurtCam, Zoom, AutoTool, ToggleSprint and utility tools
 - Performance controls including Dynamic FPS, adaptive render distance and memory cleanup
 - PvP training modules and configurable keybinds
 - Persistent module/profile configuration
