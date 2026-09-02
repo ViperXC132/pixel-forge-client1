@@ -121,7 +121,10 @@ public class AccountsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
         int y = 56;
         for (Account acc : AccountManager.getAccounts()) {
             if (!acc.active && mouseX >= width - 70 && mouseX <= width - 16 && mouseY >= y && mouseY <= y + 30) {
@@ -168,27 +171,32 @@ public class AccountsScreen extends Screen {
             return true;
         }
 
-        return userField.mouseClicked(mouseX, mouseY, button)
-                || passField.mouseClicked(mouseX, mouseY, button)
-                || super.mouseClicked(mouseX, mouseY, button);
+        return userField.mouseClicked(click, doubled)
+                || passField.mouseClicked(click, doubled)
+                || super.mouseClicked(click, doubled);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
+        int keyCode = input.key();
+        int scanCode = input.scancode();
+        int modifiers = input.modifiers();
         if (keyCode == 256) {
             client.setScreen(parent);
             return true;
         }
-        return userField.keyPressed(keyCode, scanCode, modifiers)
-                || passField.keyPressed(keyCode, scanCode, modifiers)
-                || super.keyPressed(keyCode, scanCode, modifiers);
+        return userField.keyPressed(input)
+                || passField.keyPressed(input)
+                || super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
-        return userField.charTyped(chr, modifiers)
-                || passField.charTyped(chr, modifiers)
-                || super.charTyped(chr, modifiers);
+    public boolean charTyped(net.minecraft.client.input.CharInput input) {
+        char chr = (char) input.codepoint();
+        int modifiers = input.modifiers();
+        return userField.charTyped(input)
+                || passField.charTyped(input)
+                || super.charTyped(input);
     }
 
     @Override

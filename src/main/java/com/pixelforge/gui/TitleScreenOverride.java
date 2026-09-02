@@ -173,7 +173,10 @@ public class TitleScreenOverride extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
         if (mouseY < 30) {
             if (mouseX >= 250 && mouseX < 290) { client.setScreen(new ModsScreen(this)); return true; }
             if (mouseX >= 300 && mouseX < 360) { client.setScreen(new CrosshairScreen(this)); return true; }
@@ -188,7 +191,7 @@ public class TitleScreenOverride extends Screen {
             client.setScreen(new AccountsScreen(this));
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     private static class Star {

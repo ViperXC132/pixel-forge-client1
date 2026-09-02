@@ -72,7 +72,10 @@ public class ClickGui extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
         String profileLabel = "Profile: " + profileNames[profileIndex];
         int pw = textRenderer.getWidth(profileLabel);
         if (mouseY < 26 && mouseX >= width - pw - 14) {
@@ -88,11 +91,14 @@ public class ClickGui extends Screen {
         for (Panel panel : panels) {
             if (panel.mouseClicked(mouseX, mouseY, button, search)) return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
+        int keyCode = input.key();
+        int scanCode = input.scancode();
+        int modifiers = input.modifiers();
         if (keyCode == 256 || keyCode == 344) {
             close();
             return true;
@@ -101,16 +107,18 @@ public class ClickGui extends Screen {
             search = search.substring(0, search.length() - 1);
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(input);
     }
 
     @Override
-    public boolean charTyped(char chr, int modifiers) {
+    public boolean charTyped(net.minecraft.client.input.CharInput input) {
+        char chr = (char) input.codepoint();
+        int modifiers = input.modifiers();
         if (Character.isLetterOrDigit(chr) || chr == ' ' || chr == '_' || chr == '-') {
             if (search.length() < 24) search += chr;
             return true;
         }
-        return super.charTyped(chr, modifiers);
+        return super.charTyped(input);
     }
 
     @Override
