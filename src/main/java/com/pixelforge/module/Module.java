@@ -18,32 +18,32 @@ public abstract class Module {
     protected final MinecraftClient mc=MinecraftClient.getInstance();
     private final String name; private final String description; private final Category category; private boolean enabled; private int keybind;
     private final List<Setting<?>> settings=new ArrayList<>();
-    private Double previousGamma; private Integer previousFov; private int cleanerTicks; private boolean previousLeft; private int cpsClicks; private long cpsWindow; private boolean previousUse; private boolean previousAttack;
+    private Double previousGamma; private int cleanerTicks; private boolean previousLeft; private int cpsClicks; private long cpsWindow; private boolean previousUse; private boolean previousAttack; private ParticlesMode previousParticles;
     public Module(String name,String description,Category category){this.name=name;this.description=description;this.category=category;this.enabled=false;this.keybind=-1;}
     public void toggle(){setEnabled(!enabled);}
     public void setEnabled(boolean enabled){if(this.enabled==enabled)return;this.enabled=enabled;try{if(enabled)onEnable();else onDisable();}catch(Throwable t){PixelForgeClient.LOGGER.error("Module {} lifecycle failed",name,t);}if(PixelForgeClient.getInstance()!=null&&PixelForgeClient.getInstance().getNotificationManager()!=null)PixelForgeClient.getInstance().getNotificationManager().push(name+(enabled?" enabled":" disabled"),enabled?0x55FF55:0xFF5555);try{ConfigManager.saveModule(this);}catch(Throwable ignored){}}
-    public void onEnable(){if(mc==null)return;if(name.equals("Fullbright")){previousGamma=mc.options.getGamma().getValue();mc.options.getGamma().setValue(16.0);}if(name.equals("FovChanger")){previousFov=mc.options.getFov().getValue();mc.options.getFov().setValue(110);}if(name.equals("CpsTrainer")){cpsClicks=0;cpsWindow=System.currentTimeMillis();}}
-    public void onDisable(){if(mc==null)return;if(name.equals("Fullbright")&&previousGamma!=null){mc.options.getGamma().setValue(previousGamma);previousGamma=null;}if(name.equals("FovChanger")&&previousFov!=null){mc.options.getFov().setValue(previousFov);previousFov=null;}if(name.equals("ToggleSprint")&&mc.player!=null)mc.player.setSprinting(false);if(name.equals("ToggleSneak")&&mc.player!=null)mc.player.setSneaking(false);}
+    public void onEnable(){if(mc==null||mc.options==null)return;String id=normalizedName();if(id.equals("fullbright")){previousGamma=mc.options.getGamma().getValue();mc.options.getGamma().setValue(16.0);}if(id.equals("noparticles")){previousParticles=mc.options.getParticles().getValue();mc.options.getParticles().setValue(ParticlesMode.MINIMAL);}if(id.equals("cpstrainer")){cpsClicks=0;cpsWindow=System.currentTimeMillis();}}
+    public void onDisable(){if(mc==null||mc.options==null)return;String id=normalizedName();if(id.equals("fullbright")&&previousGamma!=null){mc.options.getGamma().setValue(previousGamma);previousGamma=null;}if(id.equals("noparticles")&&previousParticles!=null){mc.options.getParticles().setValue(previousParticles);previousParticles=null;}if(id.equals("togglesprint")&&mc.player!=null)mc.player.setSprinting(false);if(id.equals("togglesneak")&&mc.player!=null)mc.player.setSneaking(false);}
     public void onTick(){
         if(mc==null||mc.player==null)return;
-        switch(name){
-            case "ToggleSprint" -> {if(!mc.player.isSneaking()&&mc.options.forwardKey.isPressed())mc.player.setSprinting(true);}
-            case "ToggleSneak" -> mc.player.setSneaking(true);
-            case "AutoRespawn" -> {if(mc.player.isDead())mc.player.requestRespawn();}
-            case "MemoryCleaner" -> {if(++cleanerTicks>=200){cleanerTicks=0;System.gc();}}
-            case "AutoTool" -> autoTool();
-            case "FastPlace" -> setItemUseCooldown(0);
-            case "Fullbright" -> {if(mc.options.getGamma().getValue()<16.0)mc.options.getGamma().setValue(16.0);}
-            case "FovChanger" -> {if(mc.options.getFov().getValue()!=110)mc.options.getFov().setValue(110);}
-            case "NoParticles" -> setMinimalParticles();
-            case "CpsTrainer" -> tickCpsTrainer();
-            case "BlockHitTrainer" -> tickBlockHitTrainer();
-            case "WTapTrainer" -> tickWTapTrainer();
-            case "StrafeTrainer" -> tickStrafeTrainer();
-            case "AimTrainer" -> tickAimTrainer();
+        switch(normalizedName()){
+            case "togglesprint" -> {if(!mc.player.isSneaking()&&mc.options.forwardKey.isPressed())mc.player.setSprinting(true);}
+            case "togglesneak" -> mc.player.setSneaking(true);
+            case "autorespawn" -> {if(mc.player.isDead())mc.player.requestRespawn();}
+            case "memorycleaner" -> {if(++cleanerTicks>=200){cleanerTicks=0;System.gc();}}
+            case "autotool" -> autoTool();
+            case "fastplace" -> setItemUseCooldown(0);
+            case "fullbright" -> {if(mc.options.getGamma().getValue()<16.0)mc.options.getGamma().setValue(16.0);}
+            case "noparticles" -> setMinimalParticles();
+            case "cpstrainer" -> tickCpsTrainer();
+            case "blockhittrainer" -> tickBlockHitTrainer();
+            case "wtaptrainer" -> tickWTapTrainer();
+            case "strafetrainer" -> tickStrafeTrainer();
+            case "aimtrainer" -> tickAimTrainer();
             default -> {}
         }
     }
+    private String normalizedName(){return name.replaceAll("[^A-Za-z0-9]","").toLowerCase(java.util.Locale.ROOT);}
     private void autoTool(){if(mc.world==null||!(mc.crosshairTarget instanceof BlockHitResult hit))return;var state=mc.world.getBlockState(hit.getBlockPos());int best=mc.player.getInventory().getSelectedSlot();float speed=-1f;for(int i=0;i<9;i++){ItemStack s=mc.player.getInventory().getStack(i);if(s.isEmpty())continue;float v=s.getMiningSpeedMultiplier(state);if(v>speed){speed=v;best=i;}}if(best>=0)mc.player.getInventory().setSelectedSlot(best);}
     private void setItemUseCooldown(int value){try{var f=MinecraftClient.class.getDeclaredField("itemUseCooldown");f.setAccessible(true);f.setInt(mc,value);}catch(Throwable ignored){}}
     private void setMinimalParticles(){try{var option=mc.options.getParticles();if(option.getValue()!=ParticlesMode.MINIMAL)option.setValue(ParticlesMode.MINIMAL);}catch(Throwable ignored){}}
