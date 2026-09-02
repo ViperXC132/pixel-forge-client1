@@ -20,6 +20,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
       - name: Patch source for 1.21.11
         shell: python
         run: |
@@ -43,9 +44,9 @@ jobs:
           p = Path('src/main/java/com/pixelforge/module/modules/utility/AutoEatModule.java')
           s = p.read_text(); s = s.replace('getInventory().selectedSlot = i', 'getInventory().setSelectedSlot(i)'); p.write_text(s)
           p = Path('src/main/java/com/pixelforge/module/modules/utility/AutoToolModule.java')
-          s = p.read_text(); s = s.replace('getInventory().selectedSlot', 'getInventory().getSelectedSlot()').replace('getInventory().getSelectedSlot() = bestSlot', 'getInventory().setSelectedSlot(bestSlot)'); p.write_text(s)
+          s = p.read_text().replace('getInventory().selectedSlot = bestSlot', 'getInventory().setSelectedSlot(bestSlot)').replace('getInventory().selectedSlot', 'getInventory().getSelectedSlot()'); p.write_text(s)
           p = Path('src/main/java/com/pixelforge/module/modules/system/FovChangerModule.java')
-          s = p.read_text().replace('private double customFov = 90.0;', 'private int customFov = 90;').replace('setValue(customFov);', 'setValue(customFov);').replace('public double getCustomFov()', 'public int getCustomFov()').replace('public void setCustomFov(double customFov)', 'public void setCustomFov(int customFov)'); p.write_text(s)
+          s = p.read_text().replace('private double customFov = 90.0;', 'private int customFov = 90;').replace('public double getCustomFov()', 'public int getCustomFov()').replace('public void setCustomFov(double customFov)', 'public void setCustomFov(int customFov)'); p.write_text(s)
           p = Path('src/main/java/com/pixelforge/module/modules/utility/ZoomModule.java')
           s = p.read_text().replace('private double previousFov = 70.0;', 'private int previousFov = 70;').replace('private final double zoomFov = 20.0;', 'private final int zoomFov = 20;'); p.write_text(s)
           p = Path('src/main/java/com/pixelforge/PixelForgeClient.java')
@@ -66,11 +67,12 @@ jobs:
           p = Path('src/main/java/com/pixelforge/account/SessionApplier.java')
           s = p.read_text()
           s = s.replace('Session.AccountType sessionType = (type == AccountManager.AccountType.OFFLINE)\n                    ? Session.AccountType.LEGACY\n                    : Session.AccountType.MSA;', 'String sessionType = type == AccountManager.AccountType.OFFLINE ? "LEGACY" : "MSA";')
-          s = s.replace('createSession(username, uuid, accessToken, sessionType)', 'createSession(username, uuid, accessToken, sessionType)')
           s = s.replace('private static Session createSession(String username, UUID uuid, String token, Session.AccountType type)', 'private static Session createSession(String username, UUID uuid, String token, String accountTypeName)')
           s = s.replace('return new Session(username, uuid, token, Optional.empty(), Optional.empty(), type);', 'return null;')
           s = s.replace('args[i] = type;', 'try {\n                            @SuppressWarnings("unchecked") Class<? extends Enum> ec = (Class<? extends Enum>) p[i];\n                            args[i] = Enum.valueOf(ec, accountTypeName);\n                        } catch (Throwable ignored) { args[i] = null; }')
           p.write_text(s)
+      - name: Create Gradle wrapper
+        run: gradle wrapper --gradle-version 9.5.1 --distribution-type bin
       - name: Build
         run: ./gradlew build --stacktrace
       - name: Commit fixes
