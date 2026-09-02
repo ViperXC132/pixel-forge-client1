@@ -8,7 +8,8 @@
     "CrosshairMixin",
     "GameRendererMixin",
     "InGameHudMixin",
-    "MinecraftClientAccessor"
+    "MinecraftClientAccessor",
+    "GameMenuScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
