@@ -1,12 +1,10 @@
 package com.pixelforge.account;
 
-import com.mojang.authlib.GameProfile;
 import com.pixelforge.PixelForgeClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.session.Session;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,18 +22,14 @@ public final class SessionApplier {
 
         try {
             UUID uuid = UUID.fromString(uuidStr.contains("-") ? uuidStr : insertDashes(uuidStr));
-            Session.AccountType sessionType = (type == AccountManager.AccountType.OFFLINE)
-                    ? Session.AccountType.LEGACY
-                    : Session.AccountType.MSA;
+            String accountTypeName = type == AccountManager.AccountType.OFFLINE ? "LEGACY" : "MSA";
 
-            // Yarn 1.21.x Session constructor variants — try common ones
-            Session session = createSession(username, uuid, accessToken, sessionType);
+            Session session = createSession(username, uuid, accessToken, accountTypeName);
             if (session == null) {
                 PixelForgeClient.LOGGER.error("Could not construct Session");
                 return false;
             }
 
-            // Set MinecraftClient.session field
             Field sessionField = findSessionField(MinecraftClient.class);
             if (sessionField == null) {
                 PixelForgeClient.LOGGER.error("Could not find session field on MinecraftClient");
@@ -43,8 +37,6 @@ public final class SessionApplier {
             }
             sessionField.setAccessible(true);
             sessionField.set(client, session);
-
-            // Clear user API service cache if present (best-effort)
             tryClearUserCache(client);
 
             PixelForgeClient.LOGGER.info("Session applied: {} ({})", username, type);
@@ -55,69 +47,55 @@ public final class SessionApplier {
         }
     }
 
-    private static Session createSession(String username, UUID uuid, String token, Session.AccountType type) {
-        // Try modern Session(String username, UUID uuid, String accessToken, Optional<String> xuid, Optional<String> clientId, AccountType)
-        try {
-            return new Session(username, uuid, token, Optional.empty(), Optional.empty(), type);
-        } catch (Throwable ignored) {}
-
-        // Fallback via reflection on constructors
+    private static Session createSession(String username, UUID uuid, String token, String accountTypeName) {
         for (var ctor : Session.class.getDeclaredConstructors()) {
             try {
                 ctor.setAccessible(true);
                 Class<?>[] p = ctor.getParameterTypes();
-                if (p.length == 6) {
-                    Object[] args = new Object[6];
-                    for (int i = 0; i < 6; i++) {
-                        if (p[i] == String.class) {
-                            if (args[0] == null) args[i] = username;
-                            else args[i] = token;
-                        } else if (p[i] == UUID.class) {
-                            args[i] = uuid;
-                        } else if (p[i] == Optional.class) {
-                            args[i] = Optional.empty();
-                        } else if (p[i].isEnum()) {
-                            args[i] = type;
-                        } else {
-                            args[i] = null;
+                if (p.length != 6) continue;
+
+                Object[] args = new Object[6];
+                int stringIndex = 0;
+                boolean valid = true;
+                for (int i = 0; i < p.length; i++) {
+                    if (p[i] == String.class) {
+                        args[i] = stringIndex++ == 0 ? username : token;
+                    } else if (p[i] == UUID.class) {
+                        args[i] = uuid;
+                    } else if (p[i] == Optional.class) {
+                        args[i] = Optional.empty();
+                    } else if (p[i].isEnum()) {
+                        @SuppressWarnings("unchecked")
+                        Class<? extends Enum> enumClass = (Class<? extends Enum>) p[i];
+                        try {
+                            args[i] = Enum.valueOf(enumClass, accountTypeName);
+                        } catch (IllegalArgumentException ex) {
+                            args[i] = Enum.valueOf(enumClass, "LEGACY");
                         }
+                    } else {
+                        valid = false;
+                        break;
                     }
-                    // Ensure order roughly username, uuid, token...
-                    args[0] = username;
-                    for (int i = 0; i < p.length; i++) {
-                        if (p[i] == UUID.class) args[i] = uuid;
-                        if (p[i] == String.class && i > 0 && args[i] == username) args[i] = token;
-                    }
-                    return (Session) ctor.newInstance(args);
                 }
-            } catch (Throwable ignored) {}
+                if (valid) return (Session) ctor.newInstance(args);
+            } catch (Throwable ignored) {
+                // Try the next constructor shape.
+            }
         }
         return null;
     }
 
     private static Field findSessionField(Class<?> clazz) {
         for (Field f : clazz.getDeclaredFields()) {
-            if (f.getType().getName().contains("Session")) {
-                return f;
-            }
+            if (f.getType().getName().contains("Session")) return f;
         }
-        // recursive super
-        if (clazz.getSuperclass() != null) {
-            return findSessionField(clazz.getSuperclass());
-        }
+        if (clazz.getSuperclass() != null) return findSessionField(clazz.getSuperclass());
         return null;
     }
 
     private static void tryClearUserCache(MinecraftClient client) {
-        try {
-            for (Field f : client.getClass().getDeclaredFields()) {
-                String n = f.getType().getName().toLowerCase();
-                if (n.contains("userapi") || n.contains("profilekeys") || n.contains("social")) {
-                    f.setAccessible(true);
-                    // leave as-is; clearing can NPE — just touch session is enough for name display
-                }
-            }
-        } catch (Throwable ignored) {}
+        // Session replacement is sufficient for the account display. Keep this best-effort
+        // hook without touching internal services whose fields change between releases.
     }
 
     private static String insertDashes(String flat) {
@@ -130,9 +108,7 @@ public final class SessionApplier {
     public static String currentUsername() {
         try {
             MinecraftClient c = MinecraftClient.getInstance();
-            if (c != null && c.getSession() != null) {
-                return c.getSession().getUsername();
-            }
+            if (c != null && c.getSession() != null) return c.getSession().getUsername();
         } catch (Throwable ignored) {}
         return "?";
     }
