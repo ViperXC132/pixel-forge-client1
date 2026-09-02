@@ -8,202 +8,101 @@ import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
-/**
- * Installed mods list + Modrinth browse/install.
- * Downloads go straight into the mods folder.
- * VulkanMod safe.
- */
+/** PixelForge mod manager with searchable, scrollable installed mods and Modrinth browsing. */
 public class ModsScreen extends Screen {
-
     private final Screen parent;
-    private boolean browseMode = false;
+    private boolean browseMode;
     private TextFieldWidget searchField;
-    private final List<ModrinthApi.ModResult> results = new ArrayList<>();
-    private String status = "";
-    private boolean restartNeeded = false;
-    private int scroll;
+    private final List<ModrinthApi.ModResult> results=new ArrayList<>();
+    private String status="";
+    private boolean restartNeeded;
+    private double scroll;
+    private static final Set<String> LIBRARIES=Set.of("minecraft","java","fabricloader","fabric-api","fabric-language-kotlin","cloth-config","modmenu","architectury","yet_another_config_lib_v3");
+    private static final int ACCENT=0xFF3B5BDB,TEXT=0xFFC8D0E0,DIM=0xFF65718A,PANEL=0xE00A0D18,BORDER=0xFF1E2540;
 
-    private static final int ACCENT = 0xFF3B5BDB;
-    private static final int TEXT = 0xFFC8D0E0;
-    private static final int DIM = 0xFF3D4A6A;
-    private static final int PANEL = 0xE00A0D18;
-    private static final int BORDER = 0xFF1E2540;
+    public ModsScreen(Screen parent){super(Text.literal("Mods"));this.parent=parent;}
 
-    public ModsScreen(Screen parent) {
-        super(Text.literal("Mods"));
-        this.parent = parent;
+    @Override protected void init(){
+        searchField=new TextFieldWidget(textRenderer,20,44,width-40,20,Text.literal("Search"));
+        searchField.setPlaceholder(Text.literal("Search installed mods or Modrinth..."));searchField.setMaxLength(64);
+        searchField.setChangedListener(s->{if(browseMode&&s.trim().length()>=2){status="Searching...";ModrinthApi.searchAsync(s.trim(),list->{results.clear();results.addAll(list);status=results.isEmpty()?"No results":"";scroll=0;});}});
+        addDrawableChild(searchField);
     }
 
-    @Override
-    protected void init() {
-        searchField = new TextFieldWidget(textRenderer, 20, 48, width - 40, 18, Text.literal("Search"));
-        searchField.setPlaceholder(Text.literal("Search Modrinth..."));
-        searchField.setChangedListener(s -> {
-            if (browseMode && s.length() >= 2) {
-                status = "Searching...";
-                ModrinthApi.searchAsync(s, list -> {
-                    results.clear();
-                    results.addAll(list);
-                    status = results.isEmpty() ? "No results" : "";
-                });
-            }
-        });
-        addSelectableChild(searchField);
+    private List<ModContainer> installed(){
+        String q=searchField==null?"":searchField.getText().trim().toLowerCase(Locale.ROOT);
+        return FabricLoader.getInstance().getAllMods().stream().filter(m->{String id=m.getMetadata().getId().toLowerCase(Locale.ROOT);if(LIBRARIES.contains(id))return false;String n=m.getMetadata().getName().toLowerCase(Locale.ROOT);return q.isEmpty()||id.contains(q)||n.contains(q);}).toList();
     }
 
-    @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        RenderUtil.fill(context, 0, 0, width, height, 0xFF0E1117);
-
-        // Header
-        RenderUtil.fill(context, 0, 0, width, 36, 0xCC0A0C14);
-        RenderUtil.drawText(context, textRenderer, "Mods", 16, 12, TEXT, false);
-
-        // Tabs
-        drawTab(context, "Installed", 80, !browseMode);
-        drawTab(context, "Browse Modrinth", 150, browseMode);
-
-        if (restartNeeded) {
-            RenderUtil.fill(context, 16, 40, width - 16, 58, 0x30FA5252);
-            RenderUtil.drawBorder(context, 16, 40, width - 32, 18, 0xFFFA5252);
-            RenderUtil.drawText(context, textRenderer, "Restart required to apply changes", 24, 45, 0xFFFF8787, false);
-            RenderUtil.drawText(context, textRenderer, "[Restart]", width - 80, 45, 0xFFFF8787, false);
+    @Override public void render(DrawContext c,int mx,int my,float d){
+        RenderUtil.fill(c,0,0,width,height,0xFF0E1117);RenderUtil.fill(c,0,0,width,36,0xE00A0C14);
+        RenderUtil.drawText(c,textRenderer,"MOD MANAGER",16,12,TEXT,false);
+        drawTab(c,"Installed",120,!browseMode);drawTab(c,"Browse Modrinth",190,browseMode);
+        searchField.setY(browseMode?44:44);searchField.render(c,mx,my,d);
+        int top=70,bottom=height-22;
+        if(restartNeeded){RenderUtil.fill(c,16,70,width-16,90,0x30FA5252);RenderUtil.drawBorder(c,16,70,width-32,20,0xFFFA5252);RenderUtil.drawText(c,textRenderer,"Restart required after installing a mod",24,76,0xFFFF8787,false);top=96;}
+        if(browseMode){
+            if(!status.isEmpty())RenderUtil.drawText(c,textRenderer,status,20,top,DIM,false);
+            int y=top+(status.isEmpty()?0:18)-(int)scroll;
+            c.enableScissor(12,top,width-12,bottom);
+            for(ModrinthApi.ModResult mod:results){if(y+34>=top&&y<=bottom)drawRow(c,16,y,width-32,mod.title,mod.description,true,mod.id);y+=40;}
+            c.disableScissor();drawScrollbar(c,top,bottom,results.size(),40);
+        }else{
+            List<ModContainer> mods=installed();int y=top-(int)scroll;
+            c.enableScissor(12,top,width-12,bottom);
+            for(ModContainer mod:mods){if(y+34>=top&&y<=bottom){String id=mod.getMetadata().getId();drawRow(c,16,y,width-32,mod.getMetadata().getName(),mod.getMetadata().getVersion().getFriendlyString()+" · "+id,false,id); }y+=40;}
+            c.disableScissor();drawScrollbar(c,top,bottom,mods.size(),40);
         }
-
-        int listY = restartNeeded ? 66 : 44;
-
-        if (browseMode) {
-            searchField.setY(listY);
-            searchField.render(context, mouseX, mouseY, delta);
-            listY += 24;
-
-            if (!status.isEmpty()) {
-                RenderUtil.drawText(context, textRenderer, status, 20, listY, DIM, false);
-            }
-
-            int y = listY + (status.isEmpty() ? 0 : 14);
-            for (ModrinthApi.ModResult mod : results) {
-                if (y > height - 30) break;
-                drawModRow(context, 16, y, width - 32, mod.title, mod.description, mod.iconUrl, true, mod);
-                y += 36;
-            }
-        } else {
-            Collection<ModContainer> mods = FabricLoader.getInstance().getAllMods();
-            int y = listY;
-            for (ModContainer mod : mods) {
-                if (y > height - 30) break;
-                String id = mod.getMetadata().getId();
-                if (id.equals("minecraft") || id.equals("java") || id.equals("fabricloader")) continue;
-                String name = mod.getMetadata().getName();
-                String ver = mod.getMetadata().getVersion().getFriendlyString();
-                drawModRow(context, 16, y, width - 32, name, ver + " · " + id, null, false, null);
-                y += 36;
-            }
-        }
-
-        RenderUtil.drawText(context, textRenderer, "ESC back", 12, height - 14, DIM, false);
-        super.render(context, mouseX, mouseY, delta);
+        if(!status.isEmpty()&&!browseMode)RenderUtil.drawText(c,textRenderer,status,20,height-12,status.startsWith("Installed")?0xFF40C057:0xFFFA5252,false);
+        RenderUtil.drawText(c,textRenderer,"ESC back  ·  mouse wheel scroll",12,height-12,DIM,false);super.render(c,mx,my,d);
     }
 
-    private void drawTab(DrawContext context, String label, int x, boolean on) {
-        int c = on ? 0xFF748FFF : DIM;
-        RenderUtil.drawText(context, textRenderer, label, x, 12, c, false);
-        if (on) {
-            RenderUtil.fill(context, x, 28, x + textRenderer.getWidth(label), 29, ACCENT);
-        }
+    private void drawTab(DrawContext c,String label,int x,boolean on){int col=on?0xFF748FFF:DIM;RenderUtil.drawText(c,textRenderer,label,x,12,col,false);if(on)RenderUtil.fill(c,x,28,x+textRenderer.getWidth(label),29,ACCENT);}
+
+    private void drawRow(DrawContext c,int x,int y,int w,String name,String sub,boolean browse,String modId){
+        RenderUtil.fill(c,x,y,x+w,y+34,0x0DFFFFFF);RenderUtil.drawBorder(c,x,y,w,34,BORDER);drawIcon(c,modId,x+7,y+7,20);
+        RenderUtil.drawText(c,textRenderer,name,x+34,y+6,TEXT,false);String s=sub==null?"":sub.replace('\n',' ');if(s.length()>58)s=s.substring(0,55)+"...";RenderUtil.drawText(c,textRenderer,s,x+34,y+18,DIM,false);
+        if(browse){RenderUtil.fill(c,x+w-72,y+8,x+w-8,y+26,0x303B5BDB);RenderUtil.drawBorder(c,x+w-72,y+8,64,18,ACCENT);RenderUtil.drawText(c,textRenderer,"Install",x+w-59,y+13,0xFF748FFF,false);}
     }
 
-    private void drawModRow(DrawContext context, int x, int y, int w, String name, String sub,
-                            String iconUrl, boolean browse, ModrinthApi.ModResult result) {
-        RenderUtil.fill(context, x, y, x + w, y + 32, 0x0AFFFFFF);
-        RenderUtil.drawBorder(context, x, y, w, 32, BORDER);
-
-        // Icon placeholder (blue square = PixelForge style fallback)
-        RenderUtil.fill(context, x + 6, y + 6, x + 26, y + 26, ACCENT);
-        RenderUtil.fill(context, x + 10, y + 10, x + 22, y + 22, 0xFFFFFFFF);
-
-        RenderUtil.drawText(context, textRenderer, name, x + 34, y + 6, TEXT, false);
-        String subTrunc = sub.length() > 50 ? sub.substring(0, 47) + "..." : sub;
-        RenderUtil.drawText(context, textRenderer, subTrunc, x + 34, y + 17, DIM, false);
-
-        if (browse && result != null) {
-            RenderUtil.fill(context, x + w - 70, y + 8, x + w - 8, y + 24, 0x403B5BDB);
-            RenderUtil.drawBorder(context, x + w - 70, y + 8, 62, 16, ACCENT);
-            RenderUtil.drawText(context, textRenderer, "Install", x + w - 58, y + 12, 0xFF748FFF, false);
-        }
-    }
-
-    @Override
-    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
-        double mouseX = click.x();
-        double mouseY = click.y();
-        int button = click.button();
-        // Tabs
-        if (mouseY < 30) {
-            if (mouseX >= 80 && mouseX < 140) { browseMode = false; return true; }
-            if (mouseX >= 150 && mouseX < 260) { browseMode = true; return true; }
-        }
-
-        // Restart button
-        if (restartNeeded && mouseY >= 40 && mouseY <= 58 && mouseX >= width - 80) {
-            // Best-effort restart: close the game. Launcher must reopen.
-            // Full auto-relaunch is launcher-specific and not reliable from inside the client.
-            if (client != null) client.scheduleStop();
-            return true;
-        }
-
-        if (browseMode) {
-            int listY = restartNeeded ? 90 : 68;
-            int y = listY;
-            for (ModrinthApi.ModResult mod : results) {
-                if (y > height - 30) break;
-                int rowRight = width - 16;
-                if (mouseX >= rowRight - 70 && mouseX <= rowRight - 8 && mouseY >= y + 8 && mouseY <= y + 24) {
-                    status = "Installing " + mod.title + "...";
-                    ModInstaller.install(mod, ok -> {
-                        if (ok) {
-                            status = "Installed " + mod.title;
-                            restartNeeded = true;
-                        } else {
-                            status = "Install failed";
-                        }
-                    });
-                    return true;
+    private void drawIcon(DrawContext c,String modId,int x,int y,int size){
+        try{
+            ModContainer container=FabricLoader.getInstance().getModContainer(modId).orElse(null);
+            if(container!=null){
+                var path=container.getMetadata().getIconPath(size).orElse(null);
+                if(path!=null){
+                    String p=path.replace('\\','/');String prefix="assets/"+modId+"/";if(p.startsWith(prefix))p=p.substring(prefix.length());
+                    Identifier id=Identifier.of(modId,p);c.drawTexture(RenderPipelines.GUI_TEXTURED,id,x,y,0,0,size,size,size,size);return;
                 }
-                y += 36;
             }
-        }
-
-        return searchField.mouseClicked(click, doubled) || super.mouseClicked(click, doubled);
+        }catch(Throwable ignored){}
+        RenderUtil.fill(c,x,y,x+size,y+size,ACCENT);RenderUtil.fill(c,x+4,y+4,x+size-4,y+size-4,0xFFFFFFFF);
     }
 
-    @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
-        int keyCode = input.key();
-        int scanCode = input.scancode();
-        int modifiers = input.modifiers();
-        if (keyCode == 256) {
-            client.setScreen(parent);
-            return true;
-        }
-        return searchField.keyPressed(input) || super.keyPressed(input);
+    private void drawScrollbar(DrawContext c,int top,int bottom,int count,int rowH){int content=count*rowH,view=bottom-top;if(content<=view)return;int thumb=Math.max(18,(int)(view*(view/(double)content)));int max=Math.max(1,content-view);int ty=top+(int)((view-thumb)*(scroll/max));RenderUtil.fill(c,width-8,top,width-5,bottom,0x301E2540);RenderUtil.fill(c,width-8,ty,width-5,ty+thumb,ACCENT);}
+
+    @Override public boolean mouseScrolled(double mx,double my,double horizontal,double vertical){
+        if(my>=40&&my<=height-20){int count=browseMode?results.size():installed().size();int max=Math.max(0,count*40-(height-70-22));scroll=Math.max(0,Math.min(max,scroll-vertical*28));return true;}return super.mouseScrolled(mx,my,horizontal,vertical);
     }
 
-    @Override
-    public boolean charTyped(net.minecraft.client.input.CharInput input) {
-        char chr = (char) input.codepoint();
-        int modifiers = input.modifiers();
-        return searchField.charTyped(input) || super.charTyped(input);
+    @Override public boolean mouseClicked(net.minecraft.client.gui.Click click,boolean doubled){
+        double mx=click.x(),my=click.y();int b=click.button();
+        if(my<32){if(mx>=120&&mx<180){browseMode=false;scroll=0;return true;}if(mx>=190&&mx<310){browseMode=true;scroll=0;return true;}}
+        if(browseMode){int top=70;int y=top-(int)scroll;for(ModrinthApi.ModResult mod:results){if(mx>=width-88&&my>=y+8&&my<=y+26){status="Installing "+mod.title+"...";ModInstaller.install(mod,ok->{if(ok){status="Installed "+mod.title;restartNeeded=true;}else status="Install failed";});return true;}y+=40;}}
+        if(searchField.mouseClicked(click,doubled)){setFocused(searchField);return true;}
+        return super.mouseClicked(click,doubled);
     }
-
-    @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    @Override public boolean keyPressed(net.minecraft.client.input.KeyInput i){if(i.key()==256){client.setScreen(parent);return true;}if(searchField.isFocused()&&searchField.keyPressed(i))return true;return super.keyPressed(i);}
+    @Override public boolean charTyped(net.minecraft.client.input.CharInput i){if(searchField.isFocused()&&searchField.charTyped(i))return true;return super.charTyped(i);}
+    @Override public boolean shouldPause(){return false;}
 }
