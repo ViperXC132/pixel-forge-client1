@@ -61,11 +61,16 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
+// Capture the archive base name during configuration so the jar task never
+// accesses Project at execution time. This keeps the build configuration-cache
+// compatible and avoids the Gradle 10 Task.project deprecation.
+def licenseArchiveName = project.base.archivesName.get()
+
 tasks.named("jar") {
     dependsOn(generateClientAssetPack)
     from(generatedClientResources)
     from("LICENSE") {
-        rename { "${it}_${project.base.archivesName.get()}" }
+        rename { fileName -> "${fileName}_${licenseArchiveName}" }
     }
 }
 
