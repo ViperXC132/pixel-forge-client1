@@ -6,6 +6,7 @@ import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticlesMode;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import org.lwjgl.glfw.GLFW;
@@ -45,7 +46,7 @@ public abstract class Module {
     }
     private void autoTool(){if(mc.world==null||!(mc.crosshairTarget instanceof BlockHitResult hit))return;var state=mc.world.getBlockState(hit.getBlockPos());int best=mc.player.getInventory().getSelectedSlot();float speed=-1f;for(int i=0;i<9;i++){ItemStack s=mc.player.getInventory().getStack(i);if(s.isEmpty())continue;float v=s.getMiningSpeedMultiplier(state);if(v>speed){speed=v;best=i;}}if(best>=0)mc.player.getInventory().setSelectedSlot(best);}
     private void setItemUseCooldown(int value){try{var f=MinecraftClient.class.getDeclaredField("itemUseCooldown");f.setAccessible(true);f.setInt(mc,value);}catch(Throwable ignored){}}
-    private void setMinimalParticles(){try{var option=mc.options.getParticles();var current=option.getValue();if(current!=null&&!"MINIMAL".equals(current.toString()))option.setValue(current); }catch(Throwable ignored){}}
+    private void setMinimalParticles(){try{var option=mc.options.getParticles();if(option.getValue()!=ParticlesMode.MINIMAL)option.setValue(ParticlesMode.MINIMAL);}catch(Throwable ignored){}}
     private void tickCpsTrainer(){long now=System.currentTimeMillis();boolean left=GLFW.glfwGetMouseButton(mc.getWindow().getHandle(),GLFW.GLFW_MOUSE_BUTTON_LEFT)==GLFW.GLFW_PRESS;if(left&&!previousLeft)cpsClicks++;previousLeft=left;if(cpsWindow==0)cpsWindow=now;if(now-cpsWindow>=1000){cpsWindow=now;cpsClicks=0;}}
     private void tickBlockHitTrainer(){boolean use=mc.options.useKey.isPressed();if(use&&!previousUse&&mc.player.isUsingItem())mc.player.swingHand(Hand.MAIN_HAND);previousUse=use;}
     private void tickWTapTrainer(){if(mc.options.forwardKey.isPressed()&&mc.player.isSprinting()&&mc.player.horizontalCollision)mc.player.setSprinting(false);}
