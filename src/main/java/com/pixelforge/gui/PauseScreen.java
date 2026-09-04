@@ -78,32 +78,20 @@ public class PauseScreen extends Screen {
     }
 
     private void openResourcePacks() {
-        Path dir = client.getResourcePackDir();
         try {
+            Path dir = client.getResourcePackDir();
+            // 1.21.11 PackScreen: (ResourcePackManager, Consumer, Path, Text) — no parent arg
             client.setScreen(new PackScreen(
-                    this,
                     client.getResourcePackManager(),
                     manager -> {
                         client.options.refreshResourcePacks(manager);
-                        client.setScreen(this);
+                        client.setScreen(PauseScreen.this);
                     },
                     dir,
                     Text.literal("Resource Packs")
             ));
         } catch (Throwable t) {
-            try {
-                client.setScreen(new PackScreen(
-                        client.getResourcePackManager(),
-                        manager -> {
-                            client.options.refreshResourcePacks(manager);
-                            client.setScreen(this);
-                        },
-                        dir,
-                        Text.literal("Resource Packs")
-                ));
-            } catch (Throwable t2) {
-                PixelForgeClient.LOGGER.warn("PackScreen open failed", t2);
-            }
+            PixelForgeClient.LOGGER.warn("PackScreen open failed", t);
         }
     }
 
