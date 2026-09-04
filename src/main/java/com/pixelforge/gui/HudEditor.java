@@ -12,25 +12,26 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 
-/** Clean HUD editor — free placement, no blocking bars. */
-public class HudEditor extends Screen {
+/** Clean HUD editor. Only real HUD modules are editable here; trainer modules stay out. */
+public final class HudEditor extends Screen {
     private Module dragging;
     private int dragOffsetX, dragOffsetY;
     private final List<Module> hudModules;
-
-    private static final int BOX_H = 16;
+    private static final int BOX_H = 18;
 
     public HudEditor() {
         super(Text.literal("HUD Editor"));
         hudModules = PixelForgeClient.getInstance().getModuleManager().getModules().stream()
-                .filter(m -> m.getCategory() == Category.HUD || m.getCategory() == Category.TRAINER)
+                .filter(m -> m.getCategory() == Category.HUD)
                 .toList();
     }
 
     @Override
     public void render(DrawContext c, int mx, int my, float d) {
-        RenderUtil.fill(c, 0, 0, width, height, 0x44000000);
-        RenderUtil.drawCenteredText(c, textRenderer, "Drag  ·  RMB toggle  ·  ESC done", width / 2, 6, 0xFFB0B0B0, false);
+        RenderUtil.fill(c, 0, 0, width, height, 0x72000000);
+        RenderUtil.drawRoundedPanel(c, 8, 8, width - 16, height - 16, 0xC8101010, 0x45FFFFFF);
+        RenderUtil.drawText(c, textRenderer, "HUD EDITOR", 18, 17, 0xFFFFFFFF, false);
+        RenderUtil.drawText(c, textRenderer, "Drag to position  •  Right click to toggle  •  ESC to save", 18, 31, 0xFFB8B8B8, false);
 
         for (Module m : hudModules) {
             int x = HudRenderer.getX(m.getName());
@@ -38,49 +39,37 @@ public class HudEditor extends Screen {
             int w = boxWidth(m);
             boolean on = m.isEnabled();
             boolean hover = mx >= x && mx <= x + w && my >= y && my <= y + BOX_H;
-            boolean isDrag = dragging == m;
-
-            int bg = isDrag ? 0x70FFFFFF : (on ? 0x90000000 : 0x50000000);
-            int border = hover || isDrag ? 0xAAFFFFFF : 0x40FFFFFF;
-
+            boolean selected = dragging == m;
+            int bg = selected ? 0x55FFFFFF : (hover ? 0x35FFFFFF : 0x22000000);
             RenderUtil.fill(c, x, y, x + w, y + BOX_H, bg);
-            RenderUtil.drawBorder(c, x, y, w, BOX_H, border);
-            RenderUtil.drawText(c, textRenderer, m.getName(), x + 5, y + 4, on ? 0xFFFFFFFF : 0xFFB0B0B0, false);
-            RenderUtil.fill(c, x + w - 9, y + 5, x + w - 4, y + 11, on ? 0xFF90EE90 : 0xFFFF6B6B);
+            RenderUtil.drawBorder(c, x, y, w, BOX_H, hover || selected ? 0xCCFFFFFF : 0x55FFFFFF);
+            RenderUtil.drawText(c, textRenderer, m.getName(), x + 6, y + 5, 0xFFFFFFFF, false);
+            RenderUtil.fill(c, x + w - 9, y + 6, x + w - 4, y + 12, on ? 0xFFFFFFFF : 0xFF777777);
         }
 
-        boolean resetHover = mx >= 8 && mx <= 70 && my >= height - 18 && my <= height - 4;
-        RenderUtil.fill(c, 8, height - 18, 70, height - 4, resetHover ? 0x40FFFFFF : 0x30000000);
-        RenderUtil.drawBorder(c, 8, height - 18, 62, 14, 0x55FFFFFF);
-        RenderUtil.drawText(c, textRenderer, "Reset", 22, height - 15, 0xFFFFFFFF, false);
-
+        int resetY = height - 28;
+        boolean resetHover = mx >= 18 && mx <= 84 && my >= resetY && my <= resetY + 18;
+        RenderUtil.fill(c, 18, resetY, 84, resetY + 18, resetHover ? 0x45FFFFFF : 0x22FFFFFF);
+        RenderUtil.drawBorder(c, 18, resetY, 66, 18, 0x55FFFFFF);
+        RenderUtil.drawText(c, textRenderer, "Reset", 36, resetY + 5, 0xFFFFFFFF, false);
         super.render(c, mx, my, d);
     }
 
-    private int boxWidth(Module m) {
-        return Math.max(64, Math.min(140, textRenderer.getWidth(m.getName()) + 20));
-    }
+    private int boxWidth(Module m) { return Math.max(72, Math.min(160, textRenderer.getWidth(m.getName()) + 24)); }
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         int mx = (int) click.x(), my = (int) click.y(), button = click.button();
-        if (button == 0 && mx >= 8 && mx <= 70 && my >= height - 18 && my <= height - 4) {
+        if (button == 0 && mx >= 18 && mx <= 84 && my >= height - 28 && my <= height - 10) {
             HudRenderer.resetLayout();
             HudRenderer.savePositions();
             return true;
         }
         for (Module m : hudModules) {
-            int x = HudRenderer.getX(m.getName());
-            int y = HudRenderer.getY(m.getName());
-            int w = boxWidth(m);
+            int x = HudRenderer.getX(m.getName()), y = HudRenderer.getY(m.getName()), w = boxWidth(m);
             if (mx >= x && mx <= x + w && my >= y && my <= y + BOX_H) {
                 if (button == 1) { m.toggle(); return true; }
-                if (button == 0) {
-                    dragging = m;
-                    dragOffsetX = mx - x;
-                    dragOffsetY = my - y;
-                    return true;
-                }
+                if (button == 0) { dragging = m; dragOffsetX = mx - x; dragOffsetY = my - y; return true; }
             }
         }
         return super.mouseClicked(click, doubled);
@@ -89,11 +78,8 @@ public class HudEditor extends Screen {
     @Override
     public boolean mouseDragged(Click click, double ox, double oy) {
         if (dragging != null && click.button() == 0) {
-            // Free placement — only clamp to screen edges, no top/bottom barrier
-            int x = (int) click.x() - dragOffsetX;
-            int y = (int) click.y() - dragOffsetY;
-            x = Math.max(0, Math.min(width - boxWidth(dragging), x));
-            y = Math.max(0, Math.min(height - BOX_H, y));
+            int x = Math.max(2, Math.min(width - boxWidth(dragging) - 2, (int) click.x() - dragOffsetX));
+            int y = Math.max(46, Math.min(height - BOX_H - 2, (int) click.y() - dragOffsetY));
             HudRenderer.setPosition(dragging.getName(), x, y);
             return true;
         }
@@ -116,8 +102,7 @@ public class HudEditor extends Screen {
         return super.keyPressed(i);
     }
 
-    @Override
-    public boolean shouldPause() { return false; }
+    @Override public boolean shouldPause() { return false; }
 
     @Override
     public void close() {
