@@ -22,8 +22,9 @@ public class GameRendererMixin {
         if (module != null && module.isEnabled()) ci.cancel();
     }
 
+    /** 1.21.11 getFov returns float — Double caused ClassCastException crash. */
     @Inject(method = "getFov", at = @At("RETURN"), cancellable = true, require = 0)
-    private void pixelforge$zoomFov(Camera camera, float tickProgress, boolean changingFov, CallbackInfoReturnable<Double> cir) {
+    private void pixelforge$zoomFov(Camera camera, float tickProgress, boolean changingFov, CallbackInfoReturnable<Float> cir) {
         try {
             if (PixelForgeClient.getInstance() == null) return;
             ZoomModule zoom = PixelForgeClient.getInstance().getModuleManager().getModule(ZoomModule.class);
