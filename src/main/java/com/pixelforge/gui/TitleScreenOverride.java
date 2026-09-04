@@ -10,7 +10,10 @@ import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.text.Text;
 
-/** Lunar-style title screen — transparent glass, white text. */
+/**
+ * Home screen — clean 2-column layout (Singleplayer | Multiplayer),
+ * plus Accounts / Mods / Options / Quit. White transparent theme.
+ */
 public class TitleScreenOverride extends Screen {
     public TitleScreenOverride() {
         super(Text.literal("PixelForge"));
@@ -19,38 +22,59 @@ public class TitleScreenOverride extends Screen {
     @Override
     public void render(DrawContext c, int mx, int my, float d) {
         RenderUtil.fill(c, 0, 0, width, height, 0xFF0A0A0A);
-        RenderUtil.fillGradient(c, 0, 0, width, height, 0xFF0A0A0A, 0xFF151515);
+        RenderUtil.fillGradient(c, 0, 0, width, height, 0xFF0A0A0A, 0xFF141414);
 
-        RenderUtil.drawCenteredText(c, textRenderer, "PIXELFORGE", width / 2, height / 2 - 90, 0xFFFFFFFF, false);
-        RenderUtil.drawCenteredText(c, textRenderer, "1.21.11", width / 2, height / 2 - 76, 0xFF808080, false);
+        RenderUtil.drawCenteredText(c, textRenderer, "PIXELFORGE", width / 2, height / 2 - 100, 0xFFFFFFFF, false);
+        RenderUtil.drawCenteredText(c, textRenderer, "1.21.11", width / 2, height / 2 - 86, 0xFF808080, false);
 
-        int bw = 200, bh = 28, gap = 8;
-        int x = width / 2 - bw / 2;
-        int y = height / 2 - 40;
-        String[] labels = {"Singleplayer", "Multiplayer", "Accounts", "Mods", "Options", "Quit"};
-        for (String label : labels) {
-            boolean hover = mx >= x && mx <= x + bw && my >= y && my <= y + bh;
-            RenderUtil.fill(c, x, y, x + bw, y + bh, hover ? 0x35FFFFFF : 0x18FFFFFF);
-            RenderUtil.drawBorder(c, x, y, bw, bh, hover ? 0xAAFFFFFF : 0x40FFFFFF);
-            RenderUtil.drawCenteredText(c, textRenderer, label, x + bw / 2, y + 10, 0xFFFFFFFF, false);
-            y += bh + gap;
-        }
+        int bw = 140, bh = 28, gap = 8;
+        int mid = width / 2;
+        int y = height / 2 - 50;
+
+        // Row: Singleplayer | Multiplayer
+        btn(c, mid - bw - gap / 2, y, bw, bh, "Singleplayer", mx, my);
+        btn(c, mid + gap / 2, y, bw, bh, "Multiplayer", mx, my);
+        y += bh + gap;
+
+        // Full-width rows
+        int fullW = bw * 2 + gap;
+        int x = mid - fullW / 2;
+        btn(c, x, y, fullW, bh, "Accounts", mx, my); y += bh + gap;
+        btn(c, x, y, fullW, bh, "Mods", mx, my); y += bh + gap;
+        btn(c, x, y, fullW, bh, "Options", mx, my); y += bh + gap;
+        btn(c, x, y, fullW, bh, "Quit Game", mx, my);
+
         super.render(c, mx, my, d);
+    }
+
+    private void btn(DrawContext c, int x, int y, int bw, int bh, String label, int mx, int my) {
+        boolean hover = mx >= x && mx <= x + bw && my >= y && my <= y + bh;
+        RenderUtil.fill(c, x, y, x + bw, y + bh, hover ? 0x40FFFFFF : 0x18FFFFFF);
+        RenderUtil.drawBorder(c, x, y, bw, bh, hover ? 0xCCFFFFFF : 0x40FFFFFF);
+        RenderUtil.drawCenteredText(c, textRenderer, label, x + bw / 2, y + 10, 0xFFFFFFFF, false);
     }
 
     @Override
     public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
         if (click.button() != 0) return super.mouseClicked(click, doubled);
-        int bw = 200, bh = 28, gap = 8;
-        int x = width / 2 - bw / 2;
-        int y = height / 2 - 40;
+        int bw = 140, bh = 28, gap = 8;
+        int mid = width / 2;
+        int y = height / 2 - 50;
         double mx = click.x(), my = click.y();
-        if (hit(mx, my, x, y, bw, bh)) { client.setScreen(new SelectWorldScreen(this)); return true; } y += bh + gap;
-        if (hit(mx, my, x, y, bw, bh)) { client.setScreen(new MultiplayerScreen(this)); return true; } y += bh + gap;
-        if (hit(mx, my, x, y, bw, bh)) { client.setScreen(new AccountsScreen(this)); return true; } y += bh + gap;
-        if (hit(mx, my, x, y, bw, bh)) { client.setScreen(new ModsScreen(this)); return true; } y += bh + gap;
-        if (hit(mx, my, x, y, bw, bh)) { client.setScreen(new OptionsScreen(this, client.options)); return true; } y += bh + gap;
-        if (hit(mx, my, x, y, bw, bh)) { client.scheduleStop(); return true; }
+
+        if (hit(mx, my, mid - bw - gap / 2, y, bw, bh)) {
+            client.setScreen(new SelectWorldScreen(this)); return true;
+        }
+        if (hit(mx, my, mid + gap / 2, y, bw, bh)) {
+            client.setScreen(new MultiplayerScreen(this)); return true;
+        }
+        y += bh + gap;
+        int fullW = bw * 2 + gap;
+        int x = mid - fullW / 2;
+        if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new AccountsScreen(this)); return true; } y += bh + gap;
+        if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new ModsScreen(this)); return true; } y += bh + gap;
+        if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new OptionsScreen(this, client.options)); return true; } y += bh + gap;
+        if (hit(mx, my, x, y, fullW, bh)) { client.scheduleStop(); return true; }
         return super.mouseClicked(click, doubled);
     }
 
