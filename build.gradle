@@ -23,6 +23,20 @@ dependencies {
 }
 
 def generatedClientResources = layout.buildDirectory.dir("generated/resources/main")
+
+// Embed PixelForge icon (black rounded square + white P) as real PNG bytes at build time
+def generateModIcon = tasks.register("generateModIcon") {
+    def outFile = generatedClientResources.map { it.file("assets/pixelforge/icon.png") }
+    outputs.file(outFile)
+    doLast {
+        File file = outFile.get().asFile
+        file.parentFile.mkdirs()
+        // 128x128 PNG — dark glass + white P
+        String b64 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACvklEQVR4nO3bTW6jQBBA4WKUHSdI7n+25AS9JqseIcc/3U1jaN77VqORxlipR+GAJ0KSJBFN7zjIsizf7zjO1UzT9LX7MfZ4UQe+jz2C6BrAo8HP8/zZ8zgUKaWfe3/fM4QuAdwO3oHv4zaIHiFsCsDBH6NnCM0BrIfv4I+xDqE1gn8t/8jhn8P6Z9/6wbt6A+QDOfhzydugdhNUbQCHf155JrWboDgAh39+LREUBeDwx1EbwcsAvKs3rpLZFV8CPPvHUTOrpwG4+sdVeiloug+g63gYgGf/+Eq2gBsA7m4Anv3X8WoLuAHgDADOAOD+BOD1/3qefQ5wA8AZAJwBwBkAnAHAGQCcAcB9HP0GSqSUjn4LVeZ5PvotFHMDwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHsIKU0zCPsIb4PsEXvZ/OjDLaUGwDOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgLv8w6GoPb3q7fABH8H8HaxgGAGcAcAYAZwBwBgBnAHAGAGcAcAYAZwBwBgBnAHCXfxo40pO5I7gB4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOAMAM4A4AwAzgDgDADOAOCG+EaQ3+rZjxsAzgDgDADOAOAMAM4A4AwA7k8A0zR9RUSklH7e/3a0hzzLPNs1NwCcAcAZANzdAPwccB3Prv8RbgC8hwG4Bcb36uyPcAPgPQ3ALTCukrM/omIDGME4amb1MoBXBem8SmZXtAG8FIyjdPVnxZcAIzi/2uFHVP4WYATn1TL8iIip5WDLsnznP8/z/NnyGupjfTK2fF5rug+wPpDb4Dhbhx/RuAGy9SaIcBu8y+1Jt+U3tU0BZIbwHj0H//81tr7A2m0ImUG0eXR57XlvpmsA2aMQtM0eN+V2CeCWQbTxLqwkSdrLLxev9/CJLu3AAAAAAElFTkSuQmCC"
+        file.bytes = b64.decodeBase64()
+    }
+}
+
 def generateClientAssetPack = tasks.register("generateClientAssetPack") {
     def output = generatedClientResources.map { it.dir("assets/pixelforge/packs").file("pixelforge-client-assets.bin") }
     outputs.file(output)
@@ -61,13 +75,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-// Capture the archive base name during configuration so the jar task never
-// accesses Project at execution time. This keeps the build configuration-cache
-// compatible and avoids the Gradle 10 Task.project deprecation.
 def licenseArchiveName = project.base.archivesName.get()
 
 tasks.named("jar") {
-    dependsOn(generateClientAssetPack)
+    dependsOn(generateClientAssetPack, generateModIcon)
     from(generatedClientResources)
     from("LICENSE") {
         rename { fileName -> "${fileName}_${licenseArchiveName}" }
