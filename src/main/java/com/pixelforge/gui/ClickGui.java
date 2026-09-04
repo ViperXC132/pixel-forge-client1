@@ -4,6 +4,7 @@ import com.pixelforge.PixelForgeClient;
 import com.pixelforge.config.ConfigManager;
 import com.pixelforge.module.Category;
 import com.pixelforge.module.Module;
+import com.pixelforge.util.KeyUtil;
 import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
@@ -19,9 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Compact Lunar-style ClickGUI — small centered rounded panel.
- */
+/** Lunar ClickGUI — transparent glass, white text, no purple. */
 public class ClickGui extends Screen {
     private final List<Category> categories = new ArrayList<>();
     private Category selectedCategory;
@@ -33,25 +32,13 @@ public class ClickGui extends Screen {
     private Module.Setting<?> draggedSetting;
     private final Map<String, Boolean> expanded = new HashMap<>();
 
-    private static final int PANEL_W = 360;
-    private static final int PANEL_H = 420;
-
-    private static final int BG = 0xF0121624;
-    private static final int HEADER = 0xF00E1220;
-    private static final int CARD = 0xFF1A2030;
-    private static final int CARD_HOVER = 0xFF222A3C;
-    private static final int ACCENT = 0xFF5B6CFF;
-    private static final int ACCENT_DIM = 0xFF3A4699;
-    private static final int TEXT = 0xFFEAF0FF;
-    private static final int DIM = 0xFF8B95B0;
-    private static final int GREEN = 0xFF4ADE80;
-    private static final int RED = 0xFFF87171;
-    private static final int BORDER = 0xFF2A3350;
+    private static final int PANEL_W = 340;
+    private static final int PANEL_H = 400;
 
     private int left, top;
 
     public ClickGui() {
-        super(Text.literal("PixelForge ClickGUI"));
+        super(Text.literal("PixelForge"));
         for (Category c : Category.values()) {
             if (c != Category.SYSTEM) categories.add(c);
         }
@@ -62,7 +49,7 @@ public class ClickGui extends Screen {
     protected void init() {
         left = (width - PANEL_W) / 2;
         top = (height - PANEL_H) / 2;
-        searchField = new TextFieldWidget(textRenderer, left + 10, top + 36, PANEL_W - 20, 16, Text.literal("Search"));
+        searchField = new TextFieldWidget(textRenderer, left + 10, top + 34, PANEL_W - 20, 16, Text.literal("Search"));
         searchField.setPlaceholder(Text.literal("Search..."));
         searchField.setMaxLength(40);
         addDrawableChild(searchField);
@@ -73,7 +60,7 @@ public class ClickGui extends Screen {
         top = (height - PANEL_H) / 2;
         if (searchField != null) {
             searchField.setX(left + 10);
-            searchField.setY(top + 36);
+            searchField.setY(top + 34);
             searchField.setWidth(PANEL_W - 20);
         }
     }
@@ -88,53 +75,30 @@ public class ClickGui extends Screen {
                 .toList();
     }
 
-    private void drawRoundedPanel(DrawContext c, int x, int y, int w, int h, int fill, int border) {
-        RenderUtil.fill(c, x + 2, y, x + w - 2, y + h, fill);
-        RenderUtil.fill(c, x, y + 2, x + w, y + h - 2, fill);
-        RenderUtil.fill(c, x + 1, y + 1, x + 2, y + 2, fill);
-        RenderUtil.fill(c, x + w - 2, y + 1, x + w - 1, y + 2, fill);
-        RenderUtil.fill(c, x + 1, y + h - 2, x + 2, y + h - 1, fill);
-        RenderUtil.fill(c, x + w - 2, y + h - 2, x + w - 1, y + h - 1, fill);
-        RenderUtil.fill(c, x + 2, y, x + w - 2, y + 1, border);
-        RenderUtil.fill(c, x + 2, y + h - 1, x + w - 2, y + h, border);
-        RenderUtil.fill(c, x, y + 2, x + 1, y + h - 2, border);
-        RenderUtil.fill(c, x + w - 1, y + 2, x + w, y + h - 2, border);
-        RenderUtil.fill(c, x + 1, y + 1, x + 2, y + 2, border);
-        RenderUtil.fill(c, x + w - 2, y + 1, x + w - 1, y + 2, border);
-        RenderUtil.fill(c, x + 1, y + h - 2, x + 2, y + h - 1, border);
-        RenderUtil.fill(c, x + w - 2, y + h - 2, x + w - 1, y + h - 1, border);
-    }
-
     @Override
     public void render(DrawContext c, int mx, int my, float d) {
         layout();
-        RenderUtil.fill(c, 0, 0, width, height, 0x88000000);
-        drawRoundedPanel(c, left, top, PANEL_W, PANEL_H, BG, BORDER);
+        RenderUtil.fill(c, 0, 0, width, height, 0x66000000);
+        RenderUtil.drawRoundedPanel(c, left, top, PANEL_W, PANEL_H, 0xD0101010, 0x55FFFFFF);
 
-        RenderUtil.fill(c, left + 2, top + 2, left + PANEL_W - 2, top + 30, HEADER);
-        RenderUtil.drawText(c, textRenderer, "PIXELFORGE", left + 12, top + 11, TEXT, false);
-        RenderUtil.drawText(c, textRenderer, "RSHIFT", left + PANEL_W - 48, top + 11, DIM, false);
+        RenderUtil.drawText(c, textRenderer, "PIXELFORGE", left + 12, top + 12, RenderUtil.TEXT, false);
+        RenderUtil.drawText(c, textRenderer, "RSHIFT", left + PANEL_W - 48, top + 12, RenderUtil.DIM, false);
 
-        int tabY = top + 56;
-        int tabX = left + 10;
+        int tabY = top + 54, tabX = left + 10;
         for (Category cat : categories) {
             String label = cat.getDisplayName();
-            int tw = textRenderer.getWidth(label) + 12;
+            int tw = textRenderer.getWidth(label) + 10;
             if (tabX + tw > left + PANEL_W - 10) break;
             boolean on = cat == selectedCategory;
-            boolean hover = mx >= tabX && mx <= tabX + tw && my >= tabY && my <= tabY + 16;
-            RenderUtil.fill(c, tabX, tabY, tabX + tw, tabY + 16, on ? 0x503B5BDB : (hover ? 0x301E2540 : 0x20101824));
-            RenderUtil.drawBorder(c, tabX, tabY, tw, 16, on ? ACCENT : BORDER);
-            RenderUtil.drawText(c, textRenderer, label, tabX + 6, tabY + 4, on ? ACCENT : DIM, false);
-            tabX += tw + 4;
+            boolean hover = mx >= tabX && mx <= tabX + tw && my >= tabY && my <= tabY + 14;
+            RenderUtil.fill(c, tabX, tabY, tabX + tw, tabY + 14, on ? 0x40FFFFFF : (hover ? 0x25FFFFFF : 0x10FFFFFF));
+            RenderUtil.drawBorder(c, tabX, tabY, tw, 14, on ? 0xAAFFFFFF : 0x30FFFFFF);
+            RenderUtil.drawText(c, textRenderer, label, tabX + 5, tabY + 3, on ? RenderUtil.TEXT : RenderUtil.DIM, false);
+            tabX += tw + 3;
         }
 
-        int listTop = top + 78;
-        int listBottom = top + PANEL_H - 32;
-        int listLeft = left + 8;
-        int listRight = left + PANEL_W - 8;
-        int contentW = listRight - listLeft;
-
+        int listTop = top + 74, listBottom = top + PANEL_H - 30;
+        int listLeft = left + 8, listRight = left + PANEL_W - 8, contentW = listRight - listLeft;
         List<Module> list = modules();
         int totalH = 0;
         for (Module m : list) totalH += rowHeight(m);
@@ -145,103 +109,78 @@ public class ClickGui extends Screen {
         int yy = listTop - moduleScroll;
         for (Module m : list) {
             int h = rowHeight(m);
-            if (yy + h >= listTop && yy <= listBottom) {
-                drawModuleRow(c, m, listLeft, yy, contentW, mx, my);
-            }
+            if (yy + h >= listTop && yy <= listBottom) drawModuleRow(c, m, listLeft, yy, contentW, mx, my);
             yy += h;
         }
         c.disableScissor();
 
-        if (maxScroll > 0) {
-            int view = listBottom - listTop;
-            int thumb = Math.max(12, (int) (view * (view / (double) (view + maxScroll))));
-            int ty = listTop + (int) ((view - thumb) * (moduleScroll / (double) maxScroll));
-            RenderUtil.fill(c, listRight - 3, listTop, listRight - 1, listBottom, 0x301E2540);
-            RenderUtil.fill(c, listRight - 3, ty, listRight - 1, ty + thumb, ACCENT);
-        }
-
-        RenderUtil.fill(c, left + 2, top + PANEL_H - 28, left + PANEL_W - 2, top + PANEL_H - 2, HEADER);
-        boolean hudHover = mx >= left + 10 && mx <= left + 100 && my >= top + PANEL_H - 22 && my <= top + PANEL_H - 8;
-        RenderUtil.fill(c, left + 10, top + PANEL_H - 22, left + 100, top + PANEL_H - 8, hudHover ? 0x403B5BDB : 0x201E2540);
-        RenderUtil.drawBorder(c, left + 10, top + PANEL_H - 22, 90, 14, ACCENT);
-        RenderUtil.drawText(c, textRenderer, "HUD Editor", left + 28, top + PANEL_H - 19, ACCENT, false);
-        RenderUtil.drawText(c, textRenderer, "RMB toggle · LMB expand", left + 110, top + PANEL_H - 19, DIM, false);
+        boolean hudHover = mx >= left + 10 && mx <= left + 90 && my >= top + PANEL_H - 24 && my <= top + PANEL_H - 8;
+        RenderUtil.fill(c, left + 10, top + PANEL_H - 24, left + 90, top + PANEL_H - 8, hudHover ? 0x40FFFFFF : 0x18FFFFFF);
+        RenderUtil.drawBorder(c, left + 10, top + PANEL_H - 24, 80, 16, 0x55FFFFFF);
+        RenderUtil.drawText(c, textRenderer, "HUD Editor", left + 22, top + PANEL_H - 20, RenderUtil.TEXT, false);
 
         super.render(c, mx, my, d);
     }
 
     private int rowHeight(Module m) {
         boolean open = expanded.getOrDefault(m.getName(), false);
-        if (!open) return 28;
-        return 28 + 8 + (2 + m.getSettings().size()) * 22;
+        return open ? 28 + 8 + (2 + m.getSettings().size()) * 20 : 26;
     }
 
     private void drawModuleRow(DrawContext c, Module m, int x, int y, int w, int mx, int my) {
         boolean open = expanded.getOrDefault(m.getName(), false);
         int h = rowHeight(m);
-        boolean hover = mx >= x && mx <= x + w && my >= y && my < y + 26;
+        boolean hover = mx >= x && mx <= x + w && my >= y && my < y + 24;
 
-        RenderUtil.fill(c, x, y, x + w, y + h - 2, hover || open ? CARD_HOVER : CARD);
-        RenderUtil.drawBorder(c, x, y, w, h - 2, open ? ACCENT_DIM : BORDER);
-
-        if (m.isEnabled()) {
-            RenderUtil.fill(c, x, y, x + 2, y + h - 2, ACCENT);
-        }
-
-        RenderUtil.drawText(c, textRenderer, m.getName(), x + 8, y + 9, m.isEnabled() ? TEXT : DIM, false);
+        RenderUtil.fill(c, x, y, x + w, y + h - 2, hover || open ? 0x28FFFFFF : 0x14FFFFFF);
+        RenderUtil.drawBorder(c, x, y, w, h - 2, open ? 0x70FFFFFF : 0x28FFFFFF);
+        RenderUtil.drawText(c, textRenderer, m.getName(), x + 8, y + 8, m.isEnabled() ? RenderUtil.TEXT : RenderUtil.DIM, false);
 
         String pill = m.isEnabled() ? "ON" : "OFF";
-        int px = x + w - 48;
-        RenderUtil.fill(c, px, y + 6, px + 28, y + 20, m.isEnabled() ? 0x4030A060 : 0x40A03030);
-        RenderUtil.drawBorder(c, px, y + 6, 28, 14, m.isEnabled() ? GREEN : RED);
-        RenderUtil.drawText(c, textRenderer, pill, px + (m.isEnabled() ? 7 : 5), y + 9, m.isEnabled() ? GREEN : RED, false);
-        RenderUtil.drawText(c, textRenderer, open ? "v" : ">", x + w - 14, y + 9, DIM, false);
+        int px = x + w - 42;
+        RenderUtil.fill(c, px, y + 5, px + 26, y + 19, m.isEnabled() ? 0x3030A060 : 0x30A03030);
+        RenderUtil.drawBorder(c, px, y + 5, 26, 14, m.isEnabled() ? RenderUtil.GREEN : RenderUtil.RED);
+        RenderUtil.drawText(c, textRenderer, pill, px + (m.isEnabled() ? 6 : 4), y + 8, m.isEnabled() ? RenderUtil.GREEN : RenderUtil.RED, false);
 
         if (open) {
-            int sy = y + 30;
-            drawSettingChip(c, x + 6, sy, w - 12, "Enabled", m.isEnabled() ? "ON" : "OFF", m.isEnabled());
-            sy += 22;
-            String keyLabel = waitingForKey && expandedModule == m
-                    ? "Press key..."
-                    : (m.getKeybind() < 0 ? "None" : ("Key " + m.getKeybind()));
-            drawSettingChip(c, x + 6, sy, w - 12, "Keybind", keyLabel, false);
-            sy += 22;
+            int sy = y + 28;
+            drawChip(c, x + 6, sy, w - 12, "Enabled", m.isEnabled() ? "ON" : "OFF", m.isEnabled());
+            sy += 20;
+            String keyLabel = waitingForKey && expandedModule == m ? "..." : KeyUtil.name(m.getKeybind());
+            drawChip(c, x + 6, sy, w - 12, "Keybind", keyLabel, false);
+            sy += 20;
             for (Module.Setting<?> s : m.getSettings()) {
                 Object v = s.get();
-                if (v instanceof Boolean b) {
-                    drawSettingChip(c, x + 6, sy, w - 12, s.getName(), b ? "ON" : "OFF", b);
-                } else if (v instanceof Number n) {
-                    drawSlider(c, x + 6, sy, w - 12, s, n);
-                } else {
-                    drawSettingChip(c, x + 6, sy, w - 12, s.getName(), String.valueOf(v), false);
-                }
-                sy += 22;
+                if (v instanceof Boolean b) drawChip(c, x + 6, sy, w - 12, s.getName(), b ? "ON" : "OFF", b);
+                else if (v instanceof Number n) drawSlider(c, x + 6, sy, w - 12, s, n);
+                else drawChip(c, x + 6, sy, w - 12, s.getName(), String.valueOf(v), false);
+                sy += 20;
             }
         }
     }
 
-    private void drawSettingChip(DrawContext c, int x, int y, int w, String name, String value, boolean on) {
-        RenderUtil.drawText(c, textRenderer, name, x + 2, y + 4, DIM, false);
-        int vw = Math.max(28, textRenderer.getWidth(value) + 10);
+    private void drawChip(DrawContext c, int x, int y, int w, String name, String value, boolean on) {
+        RenderUtil.drawText(c, textRenderer, name, x + 2, y + 3, RenderUtil.DIM, false);
+        int vw = Math.max(24, textRenderer.getWidth(value) + 8);
         int vx = x + w - vw - 2;
-        RenderUtil.fill(c, vx, y + 1, vx + vw, y + 15, on ? 0x4030A060 : 0x201E2540);
-        RenderUtil.drawBorder(c, vx, y + 1, vw, 14, on ? GREEN : BORDER);
-        RenderUtil.drawText(c, textRenderer, value, vx + 5, y + 4, on ? GREEN : TEXT, false);
+        RenderUtil.fill(c, vx, y, vx + vw, y + 14, on ? 0x3030A060 : 0x18FFFFFF);
+        RenderUtil.drawBorder(c, vx, y, vw, 14, on ? RenderUtil.GREEN : 0x40FFFFFF);
+        RenderUtil.drawText(c, textRenderer, value, vx + 4, y + 3, on ? RenderUtil.GREEN : RenderUtil.TEXT, false);
     }
 
     private void drawSlider(DrawContext c, int x, int y, int w, Module.Setting<?> s, Number n) {
-        RenderUtil.drawText(c, textRenderer, s.getName(), x + 2, y + 1, DIM, false);
+        RenderUtil.drawText(c, textRenderer, s.getName(), x + 2, y, RenderUtil.DIM, false);
         double min = s.getMin(), max = s.getMax();
         double value = Math.max(min, Math.min(max, n.doubleValue()));
-        int bx = x + 2, bw = w - 48, by = y + 12;
-        RenderUtil.fill(c, bx, by, bx + bw, by + 3, 0x503B5BDB);
+        int bx = x + 2, bw = w - 44, by = y + 11;
+        RenderUtil.fill(c, bx, by, bx + bw, by + 2, 0x40FFFFFF);
         double ratio = (value - min) / Math.max(0.0001, max - min);
         int knob = bx + (int) (bw * Math.max(0, Math.min(1, ratio)));
-        RenderUtil.fill(c, bx, by, knob, by + 3, ACCENT);
-        RenderUtil.fill(c, knob - 3, by - 2, knob + 3, by + 5, 0xFFEAF0FF);
+        RenderUtil.fill(c, bx, by, knob, by + 2, 0xAAFFFFFF);
+        RenderUtil.fill(c, knob - 2, by - 2, knob + 2, by + 4, 0xFFFFFFFF);
         String label = (n instanceof Integer || n instanceof Long) ? String.valueOf(n.longValue())
-                : String.format(Locale.ROOT, "%.2f", n.doubleValue());
-        RenderUtil.drawText(c, textRenderer, label, x + w - 40, y + 3, ACCENT, false);
+                : String.format(Locale.ROOT, "%.1f", n.doubleValue());
+        RenderUtil.drawText(c, textRenderer, label, x + w - 36, y + 2, RenderUtil.TEXT, false);
     }
 
     @Override
@@ -250,32 +189,25 @@ public class ClickGui extends Screen {
         double x = click.x(), y = click.y();
         int b = click.button();
 
-        if (b == 0 && x >= left + 10 && x <= left + 100 && y >= top + PANEL_H - 22 && y <= top + PANEL_H - 8) {
+        if (b == 0 && x >= left + 10 && x <= left + 90 && y >= top + PANEL_H - 24 && y <= top + PANEL_H - 8) {
             client.setScreen(new HudEditor());
             return true;
         }
 
-        int tabY = top + 56;
-        int tabX = left + 10;
+        int tabY = top + 54, tabX = left + 10;
         for (Category cat : categories) {
             String label = cat.getDisplayName();
-            int tw = textRenderer.getWidth(label) + 12;
+            int tw = textRenderer.getWidth(label) + 10;
             if (tabX + tw > left + PANEL_W - 10) break;
-            if (x >= tabX && x <= tabX + tw && y >= tabY && y <= tabY + 16) {
-                selectedCategory = cat;
-                expandedModule = null;
-                expanded.clear();
-                moduleScroll = 0;
+            if (x >= tabX && x <= tabX + tw && y >= tabY && y <= tabY + 14) {
+                selectedCategory = cat; expanded.clear(); expandedModule = null; moduleScroll = 0;
                 return true;
             }
-            tabX += tw + 4;
+            tabX += tw + 3;
         }
 
-        int listTop = top + 78;
-        int listBottom = top + PANEL_H - 32;
-        int listLeft = left + 8;
-        int listRight = left + PANEL_W - 8;
-        int contentW = listRight - listLeft;
+        int listTop = top + 74, listBottom = top + PANEL_H - 30;
+        int listLeft = left + 8, listRight = left + PANEL_W - 8, contentW = listRight - listLeft;
 
         if (x >= listLeft && x <= listRight && y >= listTop && y <= listBottom) {
             List<Module> list = modules();
@@ -283,52 +215,32 @@ public class ClickGui extends Screen {
             for (Module m : list) {
                 int h = rowHeight(m);
                 if (y >= yy && y < yy + h) {
-                    if (y < yy + 26) {
-                        if (b == 1) {
-                            m.toggle();
-                            return true;
-                        }
+                    if (y < yy + 24) {
+                        if (b == 1) { m.toggle(); return true; }
                         if (b == 0) {
                             boolean was = expanded.getOrDefault(m.getName(), false);
                             expanded.clear();
-                            if (!was) {
-                                expanded.put(m.getName(), true);
-                                expandedModule = m;
-                            } else {
-                                expandedModule = null;
-                            }
+                            if (!was) { expanded.put(m.getName(), true); expandedModule = m; }
+                            else expandedModule = null;
                             return true;
                         }
                     } else if (expanded.getOrDefault(m.getName(), false) && b == 0) {
-                        int sy = yy + 30;
-                        if (y >= sy && y < sy + 22) {
-                            m.toggle();
-                            return true;
-                        }
-                        sy += 22;
-                        if (y >= sy && y < sy + 22) {
-                            waitingForKey = true;
-                            expandedModule = m;
-                            setFocused(null);
-                            return true;
-                        }
-                        sy += 22;
+                        int sy = yy + 28;
+                        if (y >= sy && y < sy + 20) { m.toggle(); return true; }
+                        sy += 20;
+                        if (y >= sy && y < sy + 20) { waitingForKey = true; expandedModule = m; setFocused(null); return true; }
+                        sy += 20;
                         for (Module.Setting<?> s : m.getSettings()) {
                             Object v = s.get();
-                            if (y >= sy && y < sy + 22) {
-                                if (v instanceof Boolean) {
-                                    setBoolean(s, !((Boolean) v));
-                                    return true;
-                                }
+                            if (y >= sy && y < sy + 20) {
+                                if (v instanceof Boolean) { setBoolean(s, !((Boolean) v)); return true; }
                                 if (v instanceof Number) {
-                                    draggingSlider = true;
-                                    draggedSetting = s;
-                                    expandedModule = m;
-                                    setNumberFromMouse(s, x, listLeft + 8, contentW - 56);
+                                    draggingSlider = true; draggedSetting = s; expandedModule = m;
+                                    setNumberFromMouse(s, x, listLeft + 10, contentW - 56);
                                     return true;
                                 }
                             }
-                            sy += 22;
+                            sy += 20;
                         }
                     }
                     return true;
@@ -337,10 +249,7 @@ public class ClickGui extends Screen {
             }
         }
 
-        if (searchField != null && searchField.mouseClicked(click, doubled)) {
-            setFocused(searchField);
-            return true;
-        }
+        if (searchField != null && searchField.mouseClicked(click, doubled)) { setFocused(searchField); return true; }
         return super.mouseClicked(click, doubled);
     }
 
@@ -365,10 +274,8 @@ public class ClickGui extends Screen {
 
     @Override
     public boolean mouseDragged(Click click, double dx, double dy) {
-        if (draggingSlider && draggedSetting != null && expandedModule != null) {
-            int listLeft = left + 8;
-            int contentW = PANEL_W - 16;
-            setNumberFromMouse(draggedSetting, click.x(), listLeft + 8, contentW - 56);
+        if (draggingSlider && draggedSetting != null) {
+            setNumberFromMouse(draggedSetting, click.x(), left + 18, PANEL_W - 72);
             return true;
         }
         return super.mouseDragged(click, dx, dy);
@@ -376,38 +283,32 @@ public class ClickGui extends Screen {
 
     @Override
     public boolean mouseReleased(Click click) {
-        draggingSlider = false;
-        draggedSetting = null;
+        draggingSlider = false; draggedSetting = null;
         return super.mouseReleased(click);
     }
 
     @Override
-    public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+    public boolean mouseScrolled(double mx, double my, double h, double v) {
         layout();
-        if (mx >= left && mx <= left + PANEL_W && my >= top + 78 && my <= top + PANEL_H - 32) {
-            moduleScroll = Math.max(0, moduleScroll - (int) (vertical * 22));
+        if (mx >= left && mx <= left + PANEL_W && my >= top + 74 && my <= top + PANEL_H - 30) {
+            moduleScroll = Math.max(0, moduleScroll - (int) (v * 20));
             return true;
         }
-        return super.mouseScrolled(mx, my, horizontal, vertical);
+        return super.mouseScrolled(mx, my, h, v);
     }
 
     @Override
     public boolean keyPressed(KeyInput i) {
         if (i.key() == 256) {
-            if (waitingForKey) {
-                waitingForKey = false;
-                return true;
-            }
-            close();
-            return true;
+            if (waitingForKey) { waitingForKey = false; return true; }
+            close(); return true;
         }
         if (waitingForKey && expandedModule != null) {
             if (i.key() != 256) {
                 expandedModule.setKeybind(i.key());
                 ConfigManager.saveModule(expandedModule);
             }
-            waitingForKey = false;
-            return true;
+            waitingForKey = false; return true;
         }
         if (searchField != null && searchField.isFocused() && searchField.keyPressed(i)) return true;
         return super.keyPressed(i);
@@ -420,7 +321,5 @@ public class ClickGui extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    public boolean shouldPause() { return false; }
 }
