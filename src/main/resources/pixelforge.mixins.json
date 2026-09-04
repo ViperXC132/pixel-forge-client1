@@ -7,6 +7,7 @@
     "TitleScreenMixin",
     "CrosshairMixin",
     "GameRendererMixin",
+    "LightmapTextureManagerMixin",
     "InGameHudMixin",
     "MinecraftClientAccessor",
     "MinecraftClientMixin",
