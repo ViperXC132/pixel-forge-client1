@@ -58,17 +58,18 @@ public abstract class Module {
     @Override public String toString(){return name;}
     public void onRender(DrawContext context,float tickDelta){
         if(category!=Category.TRAINER||!enabled)return;
-        int x=HudRenderer.getX(name), y=HudRenderer.getY(name); String text;
-        if(id().equals("cpstrainer"))text="CPS Trainer · clicks/s: "+cpsClicks;
-        else if(id().equals("aimtrainer"))text="Aim Trainer · keep your crosshair on target";
-        else if(id().equals("wtaptrainer"))text="W-Tap Trainer · sprint timing active";
-        else if(id().equals("blockhittrainer"))text="Block-Hit Trainer · practice block timing";
-        else if(id().equals("strafetrainer"))text="Strafe Trainer · A/D + forward";
-        else if(id().equals("knockbacktrainer"))text="Knockback Trainer · movement feedback active";
-        else if(id().equals("pingsimulator"))text="Ping Simulator · training mode";
-        else text=name+" · training mode";
-        int w=Math.min(360,context.getScaledWindowWidth()-x-8); if(w<120)w=120;
-        RenderUtil.fill(context,x,y,x+w,y+18,0xB0101424);RenderUtil.drawBorder(context,x,y,w,18,0xFF3B5BDB);RenderUtil.drawText(context,mc.textRenderer,text,x+6,y+5,0xFFC8D0E0,false);
+        if(mc==null||mc.textRenderer==null)return;
+        int x=HudRenderer.getX(name), y=HudRenderer.getY(name);
+        String text;
+        if(id().equals("cpstrainer"))text="CPS Trainer · "+cpsClicks+"/s";
+        else if(id().equals("aimtrainer"))text="Aim Trainer";
+        else if(id().equals("wtaptrainer"))text="W-Tap Trainer";
+        else if(id().equals("blockhittrainer"))text="Block-Hit Trainer";
+        else if(id().equals("strafetrainer"))text="Strafe Trainer";
+        else if(id().equals("knockbacktrainer"))text="Knockback Trainer";
+        else if(id().equals("pingsimulator"))text="Ping Simulator";
+        else text=name;
+        RenderUtil.drawHudBox(context,mc.textRenderer,text,x,y,0xFFC8D0E0);
     }
     public String getName(){return name;}public String getDescription(){return description;}public Category getCategory(){return category;}public boolean isEnabled(){return enabled;}public int getKeybind(){return keybind;}public void setKeybind(int keybind){this.keybind=keybind;}public List<Setting<?>> getSettings(){return settings;}
     protected <T> Setting<T> addSetting(Setting<T> setting){settings.add(setting);return setting;}
