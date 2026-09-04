@@ -4,7 +4,7 @@ import com.pixelforge.module.Category;
 import com.pixelforge.module.Module;
 import org.lwjgl.glfw.GLFW;
 
-/** Hold key to zoom — FOV applied via GameRendererMixin (reliable on 1.21.x). */
+/** Hold key to zoom — FOV applied via GameRendererMixin. */
 public class ZoomModule extends Module {
     private boolean zooming;
     private final Setting<Integer> zoomFov = addSetting(new Setting<>("Zoom FOV", 20, 5, 50));
@@ -32,7 +32,7 @@ public class ZoomModule extends Module {
         return zooming && isEnabled();
     }
 
-    public double getZoomFov() {
-        return Math.max(5, Math.min(50, zoomFov.get()));
+    public float getZoomFov() {
+        return (float) Math.max(5, Math.min(50, zoomFov.get()));
     }
 }
