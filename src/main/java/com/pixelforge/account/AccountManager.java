@@ -55,6 +55,18 @@ public final class AccountManager {
         for(Account a:ACCOUNTS)a.active=(a==account);save();PixelForgeClient.getInstance().getNotificationManager().push("Switched to "+account.username,0xFF3B5BDB);
     }
     public static Account getActive(){return ACCOUNTS.stream().filter(a->a.active).findFirst().orElse(null);}
+    public static boolean remove(Account account){
+        if(account==null)return false;
+        boolean removed=ACCOUNTS.remove(account);
+        if(removed)save();
+        return removed;
+    }
+    public static boolean removeByUsername(String username){
+        if(username==null||username.isBlank())return false;
+        boolean removed=ACCOUNTS.removeIf(a->a.username!=null&&a.username.equalsIgnoreCase(username));
+        if(removed)save();
+        return removed;
+    }
     private static void load(){try{if(!Files.exists(FILE))return;String json=Files.readString(FILE);Type t=new TypeToken<List<Account>>(){}.getType();List<Account> loaded=GSON.fromJson(json,t);if(loaded!=null){ACCOUNTS.clear();ACCOUNTS.addAll(loaded);}}catch(Exception e){PixelForgeClient.LOGGER.warn("Failed to load accounts",e);}}
     private static void save(){try{Files.createDirectories(FILE.getParent());Files.writeString(FILE,GSON.toJson(ACCOUNTS));}catch(IOException e){PixelForgeClient.LOGGER.error("Failed to save accounts",e);}}
 }
