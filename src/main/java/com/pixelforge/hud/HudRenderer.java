@@ -12,63 +12,73 @@ import net.minecraft.client.gui.DrawContext;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Shared HUD layout positions used by the in-game renderer and HUD editor.
- * Positions are persisted to config/pixelforge/hud_layout.json
+ * Layouts are loaded once after client initialization and use deterministic defaults,
+ * so enabling/disabling another module can never reshuffle existing elements.
  */
-public class HudRenderer {
+public final class HudRenderer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("pixelforge/hud_layout.json");
-    private static final Map<String, int[]> POSITIONS = new HashMap<>();
-    private static int nextX = 8, nextY = 8;
-    private static boolean loaded = false;
+    private static final Type TYPE = new TypeToken<Map<String, int[]>>() {}.getType();
+    private static final Map<String, int[]> POSITIONS = new LinkedHashMap<>();
+    private static boolean loaded;
 
-    static {
+    public HudRenderer() {
         loadPositions();
     }
 
-    public static int getX(String name) {
-        return position(name)[0];
-    }
+    public static int getX(String name) { return position(name)[0]; }
+    public static int getY(String name) { return position(name)[1]; }
 
-    public static int getY(String name) {
-        return position(name)[1];
+    public static int[] position(String name) {
+        int[] saved = POSITIONS.get(name);
+        if (saved == null || saved.length < 2) {
+            saved = defaultPosition(name);
+            POSITIONS.put(name, saved);
+        }
+        return saved;
     }
 
     public static void setPosition(String name, int x, int y) {
         POSITIONS.put(name, new int[]{Math.max(2, x), Math.max(2, y)});
     }
 
-    public static int[] position(String name) {
-        return POSITIONS.computeIfAbsent(name, k -> {
-            int[] p = {nextX, nextY};
-            nextY += 24;
-            if (nextY > 180) {
-                nextY = 8;
-                nextX += 190;
+    private static int[] defaultPosition(String name) {
+        int index = 0;
+        try {
+            var manager = PixelForgeClient.getInstance() == null ? null : PixelForgeClient.getInstance().getModuleManager();
+            if (manager != null) {
+                for (Module module : manager.getModules()) {
+                    if (module.getCategory() != Category.HUD) continue;
+                    if (module.getName().equals(name)) break;
+                    index++;
+                }
             }
-            return p;
-        });
+        } catch (Throwable ignored) {}
+        int column = index / 8;
+        int row = index % 8;
+        return new int[]{8 + column * 150, 8 + row * 24};
     }
 
     public static void resetLayout() {
         POSITIONS.clear();
-        nextX = 8;
-        nextY = 8;
+        if (PixelForgeClient.getInstance() != null && PixelForgeClient.getInstance().getModuleManager() != null) {
+            for (Module module : PixelForgeClient.getInstance().getModuleManager().getModules()) {
+                if (module.getCategory() == Category.HUD) position(module.getName());
+            }
+        }
     }
 
     public static void savePositions() {
         try {
             Files.createDirectories(FILE.getParent());
-            Map<String, int[]> copy = new HashMap<>(POSITIONS);
-            Files.writeString(FILE, GSON.toJson(copy));
+            Files.writeString(FILE, GSON.toJson(POSITIONS));
         } catch (Exception e) {
-            if (PixelForgeClient.LOGGER != null) {
-                PixelForgeClient.LOGGER.warn("Failed to save HUD layout", e);
-            }
+            if (PixelForgeClient.LOGGER != null) PixelForgeClient.LOGGER.warn("Failed to save HUD layout", e);
         }
     }
 
@@ -77,15 +87,18 @@ public class HudRenderer {
         loaded = true;
         try {
             if (!Files.exists(FILE)) return;
-            String json = Files.readString(FILE);
-            Type type = new TypeToken<Map<String, int[]>>() {}.getType();
-            Map<String, int[]> loadedMap = GSON.fromJson(json, type);
+            Map<String, int[]> loadedMap = GSON.fromJson(Files.readString(FILE), TYPE);
+            POSITIONS.clear();
             if (loadedMap != null) {
-                POSITIONS.clear();
-                POSITIONS.putAll(loadedMap);
+                for (var entry : loadedMap.entrySet()) {
+                    if (entry.getKey() != null && entry.getValue() != null && entry.getValue().length >= 2) {
+                        POSITIONS.put(entry.getKey(), new int[]{Math.max(2, entry.getValue()[0]), Math.max(2, entry.getValue()[1])});
+                    }
+                }
             }
         } catch (Exception e) {
-            // ignore corrupt layout
+            POSITIONS.clear();
+            if (PixelForgeClient.LOGGER != null) PixelForgeClient.LOGGER.warn("Failed to load HUD layout; using defaults", e);
         }
     }
 
@@ -93,8 +106,7 @@ public class HudRenderer {
         PixelForgeClient client = PixelForgeClient.getInstance();
         if (client == null || client.getModuleManager() == null) return;
         for (Module module : client.getModuleManager().getModules()) {
-            if (!module.isEnabled()) continue;
-            if (module.getCategory() != Category.HUD && module.getCategory() != Category.TRAINER) continue;
+            if (!module.isEnabled() || module.getCategory() != Category.HUD) continue;
             try {
                 module.onRender(context, tickDelta);
             } catch (Throwable t) {
