@@ -1,5 +1,6 @@
 package com.pixelforge.module.modules.hud;
 
+import com.pixelforge.hud.HudRenderer;
 import com.pixelforge.module.Category;
 import com.pixelforge.module.Module;
 import com.pixelforge.util.RenderUtil;
@@ -7,6 +8,7 @@ import net.minecraft.client.gui.DrawContext;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class CpsModule extends Module {
@@ -15,8 +17,9 @@ public class CpsModule extends Module {
     private final List<Long> rightClicks = new ArrayList<>();
     private boolean leftWasDown;
     private boolean rightWasDown;
-    private int x = 4;
-    private int y = 16;
+
+    private final Setting<Boolean> showRight = addSetting(new Setting<>("Show Right CPS", true));
+    private final Setting<Boolean> shadow = addSetting(new Setting<>("Shadow", true));
 
     public CpsModule() {
         super("CPS", "Shows left and right clicks per second", Category.HUD);
@@ -38,14 +41,25 @@ public class CpsModule extends Module {
         leftWasDown = leftDown;
         rightWasDown = rightDown;
 
-        leftClicks.removeIf(t -> now - t > 1000);
-        rightClicks.removeIf(t -> now - t > 1000);
+        prune(leftClicks, now);
+        prune(rightClicks, now);
+    }
+
+    private void prune(List<Long> list, long now) {
+        Iterator<Long> it = list.iterator();
+        while (it.hasNext()) {
+            if (now - it.next() > 1000) it.remove();
+        }
     }
 
     @Override
     public void onRender(DrawContext context, float tickDelta) {
         if (mc == null || mc.textRenderer == null) return;
-        String text = "CPS: " + leftClicks.size() + " | " + rightClicks.size();
-        RenderUtil.drawText(context, mc.textRenderer, text, x, y, 0xFFFFFFFF, true);
+        int x = HudRenderer.getX(getName());
+        int y = HudRenderer.getY(getName());
+        String text = showRight.get()
+                ? ("CPS: " + leftClicks.size() + " | " + rightClicks.size())
+                : ("CPS: " + leftClicks.size());
+        RenderUtil.drawText(context, mc.textRenderer, text, x, y, 0xFFFFAA55, shadow.get());
     }
 }

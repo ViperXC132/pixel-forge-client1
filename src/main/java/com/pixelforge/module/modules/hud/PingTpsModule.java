@@ -1,5 +1,6 @@
 package com.pixelforge.module.modules.hud;
 
+import com.pixelforge.hud.HudRenderer;
 import com.pixelforge.module.Category;
 import com.pixelforge.module.Module;
 import com.pixelforge.util.RenderUtil;
@@ -8,8 +9,8 @@ import net.minecraft.client.network.PlayerListEntry;
 
 public class PingTpsModule extends Module {
 
-    private int x = 4;
-    private int y = 74;
+    private final Setting<Boolean> showTps = addSetting(new Setting<>("Show TPS", true));
+    private final Setting<Boolean> shadow = addSetting(new Setting<>("Shadow", true));
 
     public PingTpsModule() {
         super("Ping TPS", "Shows latency and estimated TPS", Category.HUD);
@@ -19,6 +20,8 @@ public class PingTpsModule extends Module {
     @Override
     public void onRender(DrawContext context, float tickDelta) {
         if (mc == null || mc.player == null || mc.textRenderer == null) return;
+        int x = HudRenderer.getX(getName());
+        int y = HudRenderer.getY(getName());
 
         int ping = 0;
         if (mc.getNetworkHandler() != null) {
@@ -26,15 +29,17 @@ public class PingTpsModule extends Module {
             if (entry != null) ping = entry.getLatency();
         }
 
-        // Simple TPS estimate (client-side only, not perfect)
         float tps = 20.0f;
         if (mc.getServer() != null) {
-            // integrated server
-            tps = Math.min(20.0f, 1000.0f / Math.max(1, mc.getServer().getAverageTickTime()));
+            try {
+                tps = Math.min(20.0f, 1000.0f / Math.max(1f, mc.getServer().getAverageTickTime()));
+            } catch (Throwable ignored) {}
         }
 
         int pingColor = ping < 50 ? 0xFF55FF55 : (ping < 100 ? 0xFFFFFF55 : 0xFFFF5555);
-        String text = String.format("Ping: %dms | TPS: %.1f", ping, tps);
-        RenderUtil.drawText(context, mc.textRenderer, text, x, y, pingColor, true);
+        String text = showTps.get()
+                ? String.format("Ping: %dms | TPS: %.1f", ping, tps)
+                : String.format("Ping: %dms", ping);
+        RenderUtil.drawText(context, mc.textRenderer, text, x, y, pingColor, shadow.get());
     }
 }
