@@ -2,16 +2,21 @@ package com.pixelforge.mixin;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.session.Session;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
+/**
+ * Proper accessor interface for swapping the live Minecraft session.
+ * Using @Accessor + @Mutable so the final session field can be replaced at runtime.
+ */
 @Mixin(MinecraftClient.class)
-public abstract class MinecraftClientAccessor {
-    @Shadow @Final @Mutable private Session session;
+public interface MinecraftClientAccessor {
 
-    public void pixelforge$setSession(Session session) {
-        this.session = session;
-    }
+    @Accessor("session")
+    Session pixelforge$getSession();
+
+    @Mutable
+    @Accessor("session")
+    void pixelforge$setSession(Session session);
 }
