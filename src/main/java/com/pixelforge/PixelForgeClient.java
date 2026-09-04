@@ -5,12 +5,10 @@ import com.pixelforge.event.EventBus;
 import com.pixelforge.hud.HudRenderer;
 import com.pixelforge.keybind.KeybindManager;
 import com.pixelforge.module.ModuleManager;
-import com.pixelforge.module.modules.visual.BlockOutlineModule;
 import com.pixelforge.util.NotificationManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,21 +40,14 @@ public class PixelForgeClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             moduleManager.onTick();
             if (client.getWindow() != null) {
-                String t = client.getWindow().getTitle();
-                if (t == null || !t.startsWith("PixelForge")) {
+                try {
                     client.getWindow().setTitle("PixelForge 1.21.11");
-                }
+                } catch (Throwable ignored) {}
             }
         });
 
         HudRenderCallback.EVENT.register((graphics, tickCounter) -> {
             hudRenderer.render(graphics, tickCounter.getTickProgress(false));
-        });
-
-        WorldRenderEvents.BLOCK_OUTLINE.register((worldRenderContext, blockOutlineContext) -> {
-            BlockOutlineModule mod = moduleManager.getModule(BlockOutlineModule.class);
-            if (mod == null || !mod.isEnabled()) return true;
-            return true;
         });
 
         LOGGER.info("PixelForge ready — {} modules loaded", moduleManager.getModules().size());
