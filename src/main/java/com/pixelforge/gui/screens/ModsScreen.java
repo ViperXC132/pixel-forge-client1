@@ -8,10 +8,7 @@ import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -29,7 +26,18 @@ public class ModsScreen extends Screen {
     @Override public void render(DrawContext c,int mx,int my,float d){RenderUtil.fill(c,0,0,width,height,0xFF0E1117);RenderUtil.fill(c,0,0,width,36,0xE00A0C14);RenderUtil.drawText(c,textRenderer,"MOD MANAGER",16,12,TEXT,false);drawTab(c,"Installed",120,!browseMode);drawTab(c,"Browse Modrinth",190,browseMode);searchField.render(c,mx,my,d);int top=70,bottom=height-22;if(restartNeeded){RenderUtil.fill(c,16,70,width-16,90,0x30FA5252);RenderUtil.drawBorder(c,16,70,width-32,20,0xFFFA5252);RenderUtil.drawText(c,textRenderer,"Restart required after installing a mod",24,76,0xFFFF8787,false);top=96;}if(browseMode){if(!status.isEmpty())RenderUtil.drawText(c,textRenderer,status,20,top,DIM,false);int y=top+(status.isEmpty()?0:18)-(int)scroll;c.enableScissor(12,top,width-12,bottom);for(ModrinthApi.ModResult mod:results){if(y+34>=top&&y<=bottom)drawRow(c,16,y,width-32,mod.title,mod.description,true,mod.projectId);y+=40;}c.disableScissor();drawScrollbar(c,top,bottom,results.size(),40);}else{List<ModContainer> mods=installed();int y=top-(int)scroll;c.enableScissor(12,top,width-12,bottom);for(ModContainer mod:mods){if(y+34>=top&&y<=bottom){String id=mod.getMetadata().getId();drawRow(c,16,y,width-32,mod.getMetadata().getName(),mod.getMetadata().getVersion().getFriendlyString()+" · "+id,false,id);}y+=40;}c.disableScissor();drawScrollbar(c,top,bottom,mods.size(),40);}if(!status.isEmpty()&&!browseMode)RenderUtil.drawText(c,textRenderer,status,20,height-12,status.startsWith("Installed")?0xFF40C057:0xFFFA5252,false);RenderUtil.drawText(c,textRenderer,"ESC back · mouse wheel scroll",12,height-12,DIM,false);super.render(c,mx,my,d);}
     private void drawTab(DrawContext c,String label,int x,boolean on){int col=on?0xFF748FFF:DIM;RenderUtil.drawText(c,textRenderer,label,x,12,col,false);if(on)RenderUtil.fill(c,x,28,x+textRenderer.getWidth(label),29,ACCENT);}
     private void drawRow(DrawContext c,int x,int y,int w,String name,String sub,boolean browse,String modId){RenderUtil.fill(c,x,y,x+w,y+34,0x0DFFFFFF);RenderUtil.drawBorder(c,x,y,w,34,BORDER);drawIcon(c,modId,x+7,y+7,20);RenderUtil.drawText(c,textRenderer,name,x+34,y+6,TEXT,false);String s=sub==null?"":sub.replace('\n',' ');if(s.length()>58)s=s.substring(0,55)+"...";RenderUtil.drawText(c,textRenderer,s,x+34,y+18,DIM,false);if(browse){RenderUtil.fill(c,x+w-72,y+8,x+w-8,y+26,0x303B5BDB);RenderUtil.drawBorder(c,x+w-72,y+8,64,18,ACCENT);RenderUtil.drawText(c,textRenderer,"Install",x+w-59,y+13,0xFF748FFF,false);}}
-    private void drawIcon(DrawContext c,String modId,int x,int y,int size){try{ModContainer container=FabricLoader.getInstance().getModContainer(modId).orElse(null);if(container!=null){var path=container.getMetadata().getIconPath(size).orElse(null);if(path!=null){String p=path.replace('\\','/');if(p.startsWith("/"))p=p.substring(1);if(p.startsWith("assets/"+modId+"/"))p=p.substring(("assets/"+modId+"/").length());Identifier id=Identifier.of(modId,p);c.drawTexture(RenderPipelines.GUI_TEXTURED,id,x,y,0,0,size,size,size,size);return;}}}catch(Throwable ignored){}RenderUtil.fill(c,x,y,x+size,y+size,0xFF273453);RenderUtil.drawCenteredText(c,textRenderer,modId.length()>0?modId.substring(0,1).toUpperCase(Locale.ROOT):"?",x+size/2,y+6,0xFFFFFFFF,false);}
+    private void drawIcon(DrawContext c,String modId,int x,int y,int size){
+        // Reliable letter badge — avoids broken 1.21.x mod icon texture paths
+        int hash = modId == null ? 0 : modId.hashCode();
+        int r = 60 + (Math.abs(hash) % 120);
+        int g = 70 + (Math.abs(hash >> 8) % 110);
+        int b = 120 + (Math.abs(hash >> 16) % 100);
+        int bg = 0xFF000000 | (r << 16) | (g << 8) | b;
+        RenderUtil.fill(c, x, y, x + size, y + size, bg);
+        RenderUtil.drawBorder(c, x, y, size, size, 0xFF3A4560);
+        String letter = (modId != null && !modId.isEmpty()) ? modId.substring(0, 1).toUpperCase(Locale.ROOT) : "?";
+        RenderUtil.drawCenteredText(c, textRenderer, letter, x + size / 2, y + (size - 8) / 2, 0xFFFFFFFF, false);
+    }
     private void drawScrollbar(DrawContext c,int top,int bottom,int count,int rowH){int content=count*rowH,view=bottom-top;if(content<=view)return;int thumb=Math.max(18,(int)(view*(view/(double)content)));int max=Math.max(1,content-view);int ty=top+(int)((view-thumb)*(scroll/max));RenderUtil.fill(c,width-8,top,width-5,bottom,0x301E2540);RenderUtil.fill(c,width-8,ty,width-5,ty+thumb,ACCENT);}
     @Override public boolean mouseScrolled(double mx,double my,double horizontal,double vertical){if(my>=40&&my<=height-20){int count=browseMode?results.size():installed().size();int max=Math.max(0,count*40-(height-70-22));scroll=Math.max(0,Math.min(max,scroll-vertical*28));return true;}return super.mouseScrolled(mx,my,horizontal,vertical);}
     @Override public boolean mouseClicked(net.minecraft.client.gui.Click click,boolean doubled){double mx=click.x(),my=click.y();int b=click.button();if(my<32){if(mx>=120&&mx<180){browseMode=false;scroll=0;return true;}if(mx>=190&&mx<310){browseMode=true;scroll=0;return true;}}if(browseMode){int top=70;int y=top-(int)scroll;for(ModrinthApi.ModResult mod:results){if(mx>=width-88&&my>=y+8&&my<=y+26){status="Installing "+mod.title+"...";ModInstaller.install(mod,ok->{if(ok){status="Installed "+mod.title;restartNeeded=true;}else status="Install failed";});return true;}y+=40;}}if(searchField.mouseClicked(click,doubled)){setFocused(searchField);return true;}return super.mouseClicked(click,doubled);}
