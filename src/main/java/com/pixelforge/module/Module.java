@@ -72,5 +72,41 @@ public abstract class Module {
     }
     public String getName(){return name;}public String getDescription(){return description;}public Category getCategory(){return category;}public boolean isEnabled(){return enabled;}public int getKeybind(){return keybind;}public void setKeybind(int keybind){this.keybind=keybind;}public List<Setting<?>> getSettings(){return settings;}
     protected <T> Setting<T> addSetting(Setting<T> setting){settings.add(setting);return setting;}
-    public static class Setting<T>{private final String name;private T value;private final T defaultValue;public Setting(String name,T defaultValue){this.name=name;this.value=defaultValue;this.defaultValue=defaultValue;}public String getName(){return name;}public T get(){return value;}public void set(T value){this.value=value;}public T getDefault(){return defaultValue;}}
+    public static class Setting<T> {
+        private final String name;
+        private T value;
+        private final T defaultValue;
+        private double min = 0;
+        private double max = 100;
+
+        public Setting(String name, T defaultValue) {
+            this.name = name;
+            this.value = defaultValue;
+            this.defaultValue = defaultValue;
+            if (defaultValue instanceof Number n) {
+                double v = Math.abs(n.doubleValue());
+                if (v <= 1) { min = 0; max = 1; }
+                else if (v <= 10) { min = 0; max = 20; }
+                else if (v <= 100) { min = 0; max = 200; }
+                else if (v <= 1000) { min = 0; max = 2000; }
+                else { min = 0; max = v * 2; }
+            }
+        }
+
+        public Setting(String name, T defaultValue, double min, double max) {
+            this.name = name;
+            this.value = defaultValue;
+            this.defaultValue = defaultValue;
+            this.min = min;
+            this.max = max;
+        }
+
+        public String getName() { return name; }
+        public T get() { return value; }
+        public void set(T value) { this.value = value; }
+        public T getDefault() { return defaultValue; }
+        public double getMin() { return min; }
+        public double getMax() { return max; }
+        public Setting<T> range(double min, double max) { this.min = min; this.max = max; return this; }
+    }
 }
