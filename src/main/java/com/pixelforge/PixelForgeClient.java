@@ -37,14 +37,8 @@ public class PixelForgeClient implements ClientModInitializer {
         configManager.loadAll();
         keybindManager.init();
 
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            moduleManager.onTick();
-            if (client.getWindow() != null) {
-                try {
-                    client.getWindow().setTitle("PixelForge 1.21.11");
-                } catch (Throwable ignored) {}
-            }
-        });
+        // Title is set only via MinecraftClientMixin.updateWindowTitle — not every tick
+        ClientTickEvents.END_CLIENT_TICK.register(client -> moduleManager.onTick());
 
         HudRenderCallback.EVENT.register((graphics, tickCounter) -> {
             hudRenderer.render(graphics, tickCounter.getTickProgress(false));
