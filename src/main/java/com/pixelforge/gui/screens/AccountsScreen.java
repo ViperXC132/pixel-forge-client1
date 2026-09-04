@@ -17,7 +17,7 @@ public class AccountsScreen extends Screen {
     private AccountType selectedType = AccountType.OFFLINE;
     private String status = "";
     private boolean busy;
-    private static final int ACCENT = 0xFF3B5BDB, TEXT = 0xFFC8D0E0, DIM = 0xFF8892A8, MUTED = 0xFF3D4A6A, PANEL = 0xD0101424, RED = 0xFFFA5252;
+    private static final int ACCENT = 0xFFFFFFFF, TEXT = 0xFFFFFFFF, DIM = 0xFFB0B0B0, MUTED = 0xFF808080, PANEL = 0xC0101010, RED = 0xFFFF6B6B;
 
     public AccountsScreen(Screen parent) {
         super(Text.literal("Accounts"));
@@ -39,16 +39,16 @@ public class AccountsScreen extends Screen {
 
     @Override
     public void render(DrawContext c, int mx, int my, float d) {
-        RenderUtil.fill(c, 0, 0, width, height, 0xFF080A12);
-        RenderUtil.fill(c, 0, 0, width, 34, 0xE00A0C14);
+        RenderUtil.fill(c, 0, 0, width, height, 0xFF0A0A0A);
+        RenderUtil.fill(c, 0, 0, width, 34, 0xE0101010);
         RenderUtil.drawText(c, textRenderer, "Accounts", 16, 11, TEXT, false);
-        RenderUtil.drawText(c, textRenderer, "Active: " + SessionApplier.currentUsername(), 118, 11, 0xFF748FFF, false);
+        RenderUtil.drawText(c, textRenderer, "Active: " + SessionApplier.currentUsername(), 118, 11, DIM, false);
         RenderUtil.drawText(c, textRenderer, "SAVED ACCOUNTS", 16, 44, ACCENT, false);
 
         int y = 58;
         for (Account a : AccountManager.getAccounts()) {
             RenderUtil.fill(c, 16, y, width - 16, y + 32, PANEL);
-            RenderUtil.drawBorder(c, 16, y, width - 32, 32, 0xFF1E2540);
+            RenderUtil.drawBorder(c, 16, y, width - 32, 32, 0x55FFFFFF);
             SkinHelper.drawHead(c, a.username, 22, y + 6, 20);
             RenderUtil.drawText(c, textRenderer, a.username, 48, y + 5, TEXT, false);
             RenderUtil.drawText(c, textRenderer, a.type.displayName + (a.active ? " · Active" : ""), 48, y + 17, MUTED, false);
@@ -57,7 +57,7 @@ public class AccountsScreen extends Screen {
             if (!a.active) {
                 drawAction(c, width - 82, y + 8, 58, 16, "Switch", ACCENT);
             } else {
-                RenderUtil.fill(c, width - 30, y + 13, width - 24, y + 19, 0xFF40C057);
+                RenderUtil.fill(c, width - 30, y + 13, width - 24, y + 19, 0xFF90EE90);
             }
             y += 36;
         }
@@ -83,21 +83,21 @@ public class AccountsScreen extends Screen {
         drawAction(c, 20, by, width - 40, 20, busy ? "Working..." : "Login & Apply Session", busy ? MUTED : ACCENT);
         if (!status.isEmpty()) {
             RenderUtil.drawText(c, textRenderer, status.startsWith("OK:") ? status.substring(3) : status, 20, by + 27,
-                    status.startsWith("OK:") ? 0xFF40C057 : 0xFFFA5252, false);
+                    status.startsWith("OK:") ? 0xFF90EE90 : RED, false);
         }
-        RenderUtil.drawText(c, textRenderer, "Delete removes a saved account. Active sessions stay until you switch.", 12, height - 14, MUTED, false);
+        RenderUtil.drawText(c, textRenderer, "Delete removes a saved account. ESC back.", 12, height - 14, MUTED, false);
         super.render(c, mx, my, d);
     }
 
     private void drawTypeBtn(DrawContext c, int x, int y, String label, boolean on) {
         int w = textRenderer.getWidth(label) + 14;
-        RenderUtil.fill(c, x, y, x + w, y + 16, on ? 0x403B5BDB : PANEL);
-        RenderUtil.drawBorder(c, x, y, w, 16, on ? ACCENT : 0xFF1E2540);
-        RenderUtil.drawText(c, textRenderer, label, x + 7, y + 3, on ? 0xFF748FFF : MUTED, false);
+        RenderUtil.fill(c, x, y, x + w, y + 16, on ? 0x40FFFFFF : PANEL);
+        RenderUtil.drawBorder(c, x, y, w, 16, on ? ACCENT : 0x40FFFFFF);
+        RenderUtil.drawText(c, textRenderer, label, x + 7, y + 3, on ? TEXT : MUTED, false);
     }
 
     private void drawAction(DrawContext c, int x, int y, int w, int h, String label, int color) {
-        RenderUtil.fill(c, x, y, x + w, y + h, 0x203B5BDB);
+        RenderUtil.fill(c, x, y, x + w, y + h, 0x20FFFFFF);
         RenderUtil.drawBorder(c, x, y, w, h, color);
         RenderUtil.drawCenteredText(c, textRenderer, label, x + w / 2, y + 5, color, false);
     }
@@ -112,9 +112,7 @@ public class AccountsScreen extends Screen {
                 boolean wasActive = a.active;
                 AccountManager.remove(a);
                 status = "OK: Removed " + name;
-                if (wasActive) {
-                    status = "OK: Removed " + name + " (switch to another account)";
-                }
+                if (wasActive) status = "OK: Removed " + name + " (switch to another account)";
                 return true;
             }
             if (!a.active && mx >= width - 82 && my >= y && my <= y + 32) {
@@ -143,23 +141,12 @@ public class AccountsScreen extends Screen {
             if (selectedType == AccountType.MICROSOFT) {
                 busy = true;
                 status = "Opening Microsoft sign-in...";
-                AccountManager.loginMicrosoftAsync(msg -> {
-                    busy = false;
-                    status = msg;
-                });
+                AccountManager.loginMicrosoftAsync(msg -> { busy = false; status = msg; });
                 return true;
             }
             String user = userField.getText().trim(), pass = passField.getText();
-            if (user.isEmpty()) {
-                status = "Enter a username";
-                setFocused(userField);
-                return true;
-            }
-            if (selectedType != AccountType.OFFLINE && pass.isEmpty()) {
-                status = "Password required";
-                setFocused(passField);
-                return true;
-            }
+            if (user.isEmpty()) { status = "Enter a username"; setFocused(userField); return true; }
+            if (selectedType != AccountType.OFFLINE && pass.isEmpty()) { status = "Password required"; setFocused(passField); return true; }
             busy = true;
             status = "Authenticating...";
             AccountManager.loginAsync(selectedType, user, pass, msg -> {
@@ -170,27 +157,15 @@ public class AccountsScreen extends Screen {
             return true;
         }
 
-        if (userField.mouseClicked(click, doubled)) {
-            setFocused(userField);
-            return true;
-        }
-        if (passField.mouseClicked(click, doubled)) {
-            setFocused(passField);
-            return true;
-        }
-        if (click.button() == 0 && my < 34 && mx < 100) {
-            client.setScreen(parent);
-            return true;
-        }
+        if (userField.mouseClicked(click, doubled)) { setFocused(userField); return true; }
+        if (passField.mouseClicked(click, doubled)) { setFocused(passField); return true; }
+        if (click.button() == 0 && my < 34 && mx < 100) { client.setScreen(parent); return true; }
         return super.mouseClicked(click, doubled);
     }
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyInput i) {
-        if (i.key() == 256) {
-            client.setScreen(parent);
-            return true;
-        }
+        if (i.key() == 256) { client.setScreen(parent); return true; }
         if (userField.isFocused() && userField.keyPressed(i)) return true;
         if (passField.isFocused() && passField.keyPressed(i)) return true;
         return super.keyPressed(i);
@@ -204,7 +179,5 @@ public class AccountsScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    public boolean shouldPause() { return false; }
 }
