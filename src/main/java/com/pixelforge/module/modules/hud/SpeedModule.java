@@ -7,14 +7,11 @@ import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.gui.DrawContext;
 
 public class SpeedModule extends Module {
-
-    private double lastX, lastZ;
-    private double speed;
+    private double lastX, lastZ, speed;
     private final Setting<Boolean> showKmh = addSetting(new Setting<>("Show km/h", true));
-    private final Setting<Boolean> shadow = addSetting(new Setting<>("Shadow", true));
 
     public SpeedModule() {
-        super("Speed", "Shows horizontal movement speed in m/s and km/h", Category.HUD);
+        super("Speed", "Shows horizontal movement speed", Category.HUD);
         setEnabled(true);
     }
 
@@ -31,11 +28,9 @@ public class SpeedModule extends Module {
     @Override
     public void onRender(DrawContext context, float tickDelta) {
         if (mc == null || mc.textRenderer == null) return;
-        int x = HudRenderer.getX(getName());
-        int y = HudRenderer.getY(getName());
         String text = showKmh.get()
                 ? String.format("Speed: %.2f m/s (%.1f km/h)", speed, speed * 3.6)
                 : String.format("Speed: %.2f m/s", speed);
-        RenderUtil.drawText(context, mc.textRenderer, text, x, y, 0xFF55FFFF, shadow.get());
+        RenderUtil.drawHudBox(context, mc.textRenderer, text, HudRenderer.getX(getName()), HudRenderer.getY(getName()), 0xFF55FFFF);
     }
 }

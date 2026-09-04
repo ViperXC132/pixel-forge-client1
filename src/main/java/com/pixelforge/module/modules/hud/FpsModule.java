@@ -7,8 +7,6 @@ import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.gui.DrawContext;
 
 public class FpsModule extends Module {
-
-    private final Setting<Boolean> shadow = addSetting(new Setting<>("Shadow", true));
     private final Setting<Boolean> showLabel = addSetting(new Setting<>("Show Label", true));
 
     public FpsModule() {
@@ -22,8 +20,6 @@ public class FpsModule extends Module {
         int fps = mc.getCurrentFps();
         String text = showLabel.get() ? ("FPS: " + fps) : String.valueOf(fps);
         int color = fps >= 100 ? 0xFF55FF55 : (fps >= 60 ? 0xFFFFFF55 : 0xFFFF5555);
-        int x = HudRenderer.getX(getName());
-        int y = HudRenderer.getY(getName());
-        RenderUtil.drawText(context, mc.textRenderer, text, x, y, color, shadow.get());
+        RenderUtil.drawHudBox(context, mc.textRenderer, text, HudRenderer.getX(getName()), HudRenderer.getY(getName()), color);
     }
 }

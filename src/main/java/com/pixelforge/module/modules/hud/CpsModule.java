@@ -12,14 +12,10 @@ import java.util.Iterator;
 import java.util.List;
 
 public class CpsModule extends Module {
-
     private final List<Long> leftClicks = new ArrayList<>();
     private final List<Long> rightClicks = new ArrayList<>();
-    private boolean leftWasDown;
-    private boolean rightWasDown;
-
+    private boolean leftWasDown, rightWasDown;
     private final Setting<Boolean> showRight = addSetting(new Setting<>("Show Right CPS", true));
-    private final Setting<Boolean> shadow = addSetting(new Setting<>("Shadow", true));
 
     public CpsModule() {
         super("CPS", "Shows left and right clicks per second", Category.HUD);
@@ -31,35 +27,27 @@ public class CpsModule extends Module {
         if (mc == null || mc.getWindow() == null) return;
         long window = mc.getWindow().getHandle();
         long now = System.currentTimeMillis();
-
         boolean leftDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
         boolean rightDown = GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
-
         if (leftDown && !leftWasDown) leftClicks.add(now);
         if (rightDown && !rightWasDown) rightClicks.add(now);
-
         leftWasDown = leftDown;
         rightWasDown = rightDown;
-
         prune(leftClicks, now);
         prune(rightClicks, now);
     }
 
     private void prune(List<Long> list, long now) {
         Iterator<Long> it = list.iterator();
-        while (it.hasNext()) {
-            if (now - it.next() > 1000) it.remove();
-        }
+        while (it.hasNext()) if (now - it.next() > 1000) it.remove();
     }
 
     @Override
     public void onRender(DrawContext context, float tickDelta) {
         if (mc == null || mc.textRenderer == null) return;
-        int x = HudRenderer.getX(getName());
-        int y = HudRenderer.getY(getName());
         String text = showRight.get()
                 ? ("CPS: " + leftClicks.size() + " | " + rightClicks.size())
                 : ("CPS: " + leftClicks.size());
-        RenderUtil.drawText(context, mc.textRenderer, text, x, y, 0xFFFFAA55, shadow.get());
+        RenderUtil.drawHudBox(context, mc.textRenderer, text, HudRenderer.getX(getName()), HudRenderer.getY(getName()), 0xFFFFAA55);
     }
 }
