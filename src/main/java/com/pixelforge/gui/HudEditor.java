@@ -12,21 +12,13 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 
-/**
- * Lunar-style HUD editor.
- * Compact moveable boxes — drag to reposition, right-click to toggle.
- */
+/** Clean HUD editor — no top/bottom bars. Drag boxes, RMB toggle. */
 public class HudEditor extends Screen {
     private Module dragging;
     private int dragOffsetX, dragOffsetY;
     private final List<Module> hudModules;
 
-    private static final int BOX_H = 18;
-    private static final int ACCENT = 0xFF5B6CFF;
-    private static final int TEXT = 0xFFEAF0FF;
-    private static final int DIM = 0xFF8B95B0;
-    private static final int GREEN = 0xFF4ADE80;
-    private static final int RED = 0xFFF87171;
+    private static final int BOX_H = 16;
 
     public HudEditor() {
         super(Text.literal("HUD Editor"));
@@ -37,11 +29,8 @@ public class HudEditor extends Screen {
 
     @Override
     public void render(DrawContext c, int mx, int my, float d) {
-        RenderUtil.fill(c, 0, 0, width, height, 0xA0080B12);
-
-        RenderUtil.fill(c, 0, 0, width, 28, 0xF00A0E18);
-        RenderUtil.drawText(c, textRenderer, "HUD EDITOR", 12, 10, TEXT, false);
-        RenderUtil.drawText(c, textRenderer, "Drag boxes · Right-click toggle · ESC done", 100, 10, DIM, false);
+        RenderUtil.fill(c, 0, 0, width, height, 0x55000000);
+        RenderUtil.drawCenteredText(c, textRenderer, "Drag to move  ·  Right-click toggle  ·  ESC done", width / 2, 8, RenderUtil.DIM, false);
 
         for (Module m : hudModules) {
             int x = HudRenderer.getX(m.getName());
@@ -51,67 +40,41 @@ public class HudEditor extends Screen {
             boolean hover = mx >= x && mx <= x + w && my >= y && my <= y + BOX_H;
             boolean isDrag = dragging == m;
 
-            int bg = isDrag ? 0xA03B5BDB : (on ? 0x900E1424 : 0x70080C14);
-            int border = isDrag ? 0xFF8B9CFF : (hover ? ACCENT : (on ? 0xFF2A3350 : 0xFF1A2030));
+            int bg = isDrag ? 0x70FFFFFF : (on ? 0x50000000 : 0x30000000);
+            int border = hover || isDrag ? 0xAAFFFFFF : 0x40FFFFFF;
 
             RenderUtil.fill(c, x, y, x + w, y + BOX_H, bg);
             RenderUtil.drawBorder(c, x, y, w, BOX_H, border);
-
-            if (on) {
-                RenderUtil.fill(c, x, y, x + 2, y + BOX_H, ACCENT);
-            }
-
-            String label = m.getName();
-            int maxText = w - 28;
-            while (textRenderer.getWidth(label) > maxText && label.length() > 3) {
-                label = label.substring(0, label.length() - 1);
-            }
-            if (!label.equals(m.getName()) && label.length() > 3) {
-                label = label.substring(0, label.length() - 1) + "\u2026";
-            }
-
-            RenderUtil.drawText(c, textRenderer, label, x + 6, y + 5, on ? TEXT : DIM, false);
-
-            int dot = on ? GREEN : RED;
-            RenderUtil.fill(c, x + w - 10, y + 6, x + w - 4, y + 12, dot);
+            RenderUtil.drawText(c, textRenderer, m.getName(), x + 5, y + 4, on ? RenderUtil.TEXT : RenderUtil.DIM, false);
+            RenderUtil.fill(c, x + w - 9, y + 5, x + w - 4, y + 11, on ? RenderUtil.GREEN : RenderUtil.RED);
         }
 
-        RenderUtil.fill(c, 0, height - 28, width, height, 0xF00A0E18);
-        boolean resetHover = mx >= 12 && mx <= 100 && my >= height - 22 && my <= height - 8;
-        RenderUtil.fill(c, 12, height - 22, 100, height - 8, resetHover ? 0x403B5BDB : 0x20101824);
-        RenderUtil.drawBorder(c, 12, height - 22, 88, 14, ACCENT);
-        RenderUtil.drawText(c, textRenderer, "Reset layout", 22, height - 19, ACCENT, false);
-        RenderUtil.drawText(c, textRenderer, "Positions auto-save", 120, height - 19, DIM, false);
+        boolean resetHover = mx >= 8 && mx <= 80 && my >= height - 20 && my <= height - 6;
+        RenderUtil.fill(c, 8, height - 20, 80, height - 6, resetHover ? 0x40FFFFFF : 0x20000000);
+        RenderUtil.drawBorder(c, 8, height - 20, 72, 14, 0x55FFFFFF);
+        RenderUtil.drawText(c, textRenderer, "Reset", 28, height - 17, RenderUtil.TEXT, false);
 
         super.render(c, mx, my, d);
     }
 
     private int boxWidth(Module m) {
-        int tw = textRenderer.getWidth(m.getName()) + 24;
-        return Math.max(72, Math.min(160, tw));
+        return Math.max(64, Math.min(140, textRenderer.getWidth(m.getName()) + 20));
     }
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
-        int mx = (int) click.x();
-        int my = (int) click.y();
-        int button = click.button();
-
-        if (button == 0 && mx >= 12 && mx <= 100 && my >= height - 22 && my <= height - 8) {
+        int mx = (int) click.x(), my = (int) click.y(), button = click.button();
+        if (button == 0 && mx >= 8 && mx <= 80 && my >= height - 20 && my <= height - 6) {
             HudRenderer.resetLayout();
             HudRenderer.savePositions();
             return true;
         }
-
         for (Module m : hudModules) {
             int x = HudRenderer.getX(m.getName());
             int y = HudRenderer.getY(m.getName());
             int w = boxWidth(m);
             if (mx >= x && mx <= x + w && my >= y && my <= y + BOX_H) {
-                if (button == 1) {
-                    m.toggle();
-                    return true;
-                }
+                if (button == 1) { m.toggle(); return true; }
                 if (button == 0) {
                     dragging = m;
                     dragOffsetX = mx - x;
@@ -124,16 +87,14 @@ public class HudEditor extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(Click click, double offsetX, double offsetY) {
+    public boolean mouseDragged(Click click, double ox, double oy) {
         if (dragging != null && click.button() == 0) {
-            int x = (int) click.x() - dragOffsetX;
-            int y = (int) click.y() - dragOffsetY;
-            x = Math.max(2, Math.min(width - boxWidth(dragging) - 2, x));
-            y = Math.max(30, Math.min(height - BOX_H - 30, y));
+            int x = Math.max(2, Math.min(width - boxWidth(dragging) - 2, (int) click.x() - dragOffsetX));
+            int y = Math.max(16, Math.min(height - BOX_H - 22, (int) click.y() - dragOffsetY));
             HudRenderer.setPosition(dragging.getName(), x, y);
             return true;
         }
-        return super.mouseDragged(click, offsetX, offsetY);
+        return super.mouseDragged(click, ox, oy);
     }
 
     @Override
@@ -148,18 +109,12 @@ public class HudEditor extends Screen {
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyInput i) {
-        if (i.key() == 256) {
-            HudRenderer.savePositions();
-            close();
-            return true;
-        }
+        if (i.key() == 256) { HudRenderer.savePositions(); close(); return true; }
         return super.keyPressed(i);
     }
 
     @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    public boolean shouldPause() { return false; }
 
     @Override
     public void close() {
