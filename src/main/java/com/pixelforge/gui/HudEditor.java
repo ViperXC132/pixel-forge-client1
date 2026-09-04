@@ -12,7 +12,7 @@ import net.minecraft.text.Text;
 
 import java.util.List;
 
-/** Clean HUD editor — no top/bottom bars. Drag boxes, RMB toggle. */
+/** Clean HUD editor — free placement, no blocking bars. */
 public class HudEditor extends Screen {
     private Module dragging;
     private int dragOffsetX, dragOffsetY;
@@ -29,8 +29,8 @@ public class HudEditor extends Screen {
 
     @Override
     public void render(DrawContext c, int mx, int my, float d) {
-        RenderUtil.fill(c, 0, 0, width, height, 0x55000000);
-        RenderUtil.drawCenteredText(c, textRenderer, "Drag to move  ·  Right-click toggle  ·  ESC done", width / 2, 8, RenderUtil.DIM, false);
+        RenderUtil.fill(c, 0, 0, width, height, 0x44000000);
+        RenderUtil.drawCenteredText(c, textRenderer, "Drag  ·  RMB toggle  ·  ESC done", width / 2, 6, 0xFFB0B0B0, false);
 
         for (Module m : hudModules) {
             int x = HudRenderer.getX(m.getName());
@@ -40,19 +40,19 @@ public class HudEditor extends Screen {
             boolean hover = mx >= x && mx <= x + w && my >= y && my <= y + BOX_H;
             boolean isDrag = dragging == m;
 
-            int bg = isDrag ? 0x70FFFFFF : (on ? 0x50000000 : 0x30000000);
+            int bg = isDrag ? 0x70FFFFFF : (on ? 0x90000000 : 0x50000000);
             int border = hover || isDrag ? 0xAAFFFFFF : 0x40FFFFFF;
 
             RenderUtil.fill(c, x, y, x + w, y + BOX_H, bg);
             RenderUtil.drawBorder(c, x, y, w, BOX_H, border);
-            RenderUtil.drawText(c, textRenderer, m.getName(), x + 5, y + 4, on ? RenderUtil.TEXT : RenderUtil.DIM, false);
-            RenderUtil.fill(c, x + w - 9, y + 5, x + w - 4, y + 11, on ? RenderUtil.GREEN : RenderUtil.RED);
+            RenderUtil.drawText(c, textRenderer, m.getName(), x + 5, y + 4, on ? 0xFFFFFFFF : 0xFFB0B0B0, false);
+            RenderUtil.fill(c, x + w - 9, y + 5, x + w - 4, y + 11, on ? 0xFF90EE90 : 0xFFFF6B6B);
         }
 
-        boolean resetHover = mx >= 8 && mx <= 80 && my >= height - 20 && my <= height - 6;
-        RenderUtil.fill(c, 8, height - 20, 80, height - 6, resetHover ? 0x40FFFFFF : 0x20000000);
-        RenderUtil.drawBorder(c, 8, height - 20, 72, 14, 0x55FFFFFF);
-        RenderUtil.drawText(c, textRenderer, "Reset", 28, height - 17, RenderUtil.TEXT, false);
+        boolean resetHover = mx >= 8 && mx <= 70 && my >= height - 18 && my <= height - 4;
+        RenderUtil.fill(c, 8, height - 18, 70, height - 4, resetHover ? 0x40FFFFFF : 0x30000000);
+        RenderUtil.drawBorder(c, 8, height - 18, 62, 14, 0x55FFFFFF);
+        RenderUtil.drawText(c, textRenderer, "Reset", 22, height - 15, 0xFFFFFFFF, false);
 
         super.render(c, mx, my, d);
     }
@@ -64,7 +64,7 @@ public class HudEditor extends Screen {
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         int mx = (int) click.x(), my = (int) click.y(), button = click.button();
-        if (button == 0 && mx >= 8 && mx <= 80 && my >= height - 20 && my <= height - 6) {
+        if (button == 0 && mx >= 8 && mx <= 70 && my >= height - 18 && my <= height - 4) {
             HudRenderer.resetLayout();
             HudRenderer.savePositions();
             return true;
@@ -89,8 +89,11 @@ public class HudEditor extends Screen {
     @Override
     public boolean mouseDragged(Click click, double ox, double oy) {
         if (dragging != null && click.button() == 0) {
-            int x = Math.max(2, Math.min(width - boxWidth(dragging) - 2, (int) click.x() - dragOffsetX));
-            int y = Math.max(16, Math.min(height - BOX_H - 22, (int) click.y() - dragOffsetY));
+            // Free placement — only clamp to screen edges, no top/bottom barrier
+            int x = (int) click.x() - dragOffsetX;
+            int y = (int) click.y() - dragOffsetY;
+            x = Math.max(0, Math.min(width - boxWidth(dragging), x));
+            y = Math.max(0, Math.min(height - BOX_H, y));
             HudRenderer.setPosition(dragging.getName(), x, y);
             return true;
         }
