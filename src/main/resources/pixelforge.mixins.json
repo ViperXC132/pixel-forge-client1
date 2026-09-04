@@ -9,6 +9,7 @@
     "GameRendererMixin",
     "InGameHudMixin",
     "MinecraftClientAccessor",
+    "MinecraftClientMixin",
     "GameMenuScreenMixin"
   ],
   "injectors": {
