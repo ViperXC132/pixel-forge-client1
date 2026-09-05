@@ -10,30 +10,29 @@ import net.minecraft.client.gui.DrawContext;
 public class CustomCrosshairModule extends Module {
     public static final int GRID = 15;
 
-    private final Setting<String> pixels = addSetting(new Setting<>("Pixel grid", defaultGrid()));
-    private final Setting<Integer> color = addSetting(new Setting<>("Color", 0xFFFFFF, 0, 0xFFFFFF));
-    private final Setting<Integer> opacity = addSetting(new Setting<>("Opacity", 230, 0, 255));
-    private final Setting<Integer> scale = addSetting(new Setting<>("Pixel scale", 2, 1, 8));
-    private final Setting<Boolean> outline = addSetting(new Setting<>("Outline", true));
+    private final Setting<String>  pixels        = addSetting(new Setting<>("Pixel grid",      defaultGrid()));
+    private final Setting<Integer> color         = addSetting(new Setting<>("Color",           0xFFFFFF, 0, 0xFFFFFF));
+    private final Setting<Integer> opacity       = addSetting(new Setting<>("Opacity",         230, 0, 255));
+    private final Setting<Integer> scale         = addSetting(new Setting<>("Pixel scale",     2, 1, 8));
+    private final Setting<Boolean> outline       = addSetting(new Setting<>("Outline",         true));
     private final Setting<Boolean> replaceVanilla = addSetting(new Setting<>("Replace vanilla", true));
 
     public CustomCrosshairModule() {
         super("Custom Crosshair", "Draw a crosshair pixel-by-pixel on a 15x15 canvas", Category.VISUAL);
+        setEnabledSilent(true);
     }
 
     private static String defaultGrid() {
         StringBuilder s = new StringBuilder(GRID * GRID);
         int c = GRID / 2;
-        for (int y = 0; y < GRID; y++) {
+        for (int y = 0; y < GRID; y++)
             for (int x = 0; x < GRID; x++) s.append(x == c || y == c ? '1' : '0');
-        }
         return s.toString();
     }
 
     public boolean isPixelSet(int x, int y) {
         if (x < 0 || y < 0 || x >= GRID || y >= GRID) return false;
-        String g = normalizeGrid();
-        return g.charAt(y * GRID + x) == '1';
+        return normalizeGrid().charAt(y * GRID + x) == '1';
     }
 
     public void setPixel(int x, int y, boolean value) {
@@ -43,38 +42,27 @@ public class CustomCrosshairModule extends Module {
         pixels.set(g.toString());
     }
 
-    public void clearGrid() {
-        pixels.set("0".repeat(GRID * GRID));
-    }
-
-    public void fillGrid() {
-        pixels.set("1".repeat(GRID * GRID));
-    }
+    public void clearGrid() { pixels.set("0".repeat(GRID * GRID)); }
+    public void fillGrid()  { pixels.set("1".repeat(GRID * GRID)); }
 
     public void applyPreset(String name) {
         clearGrid();
         int c = GRID / 2;
         switch (name) {
-            case "Dot" -> setPixel(c, c, true);
-            case "Plus" -> {
-                for (int i = 2; i < 13; i++) { setPixel(c, i, true); setPixel(i, c, true); }
-            }
-            case "X" -> {
-                for (int i = 2; i < 13; i++) { setPixel(i, i, true); setPixel(14 - i, i, true); }
-            }
+            case "Dot"    -> setPixel(c, c, true);
+            case "Plus"   -> { for (int i = 2; i < 13; i++) { setPixel(c, i, true); setPixel(i, c, true); } }
+            case "X"      -> { for (int i = 2; i < 13; i++) { setPixel(i, i, true); setPixel(14 - i, i, true); } }
             case "Square" -> {
                 for (int i = 3; i < 12; i++) {
-                    setPixel(i, 3, true); setPixel(i, 11, true);
-                    setPixel(3, i, true); setPixel(11, i, true);
+                    setPixel(i,  3, true); setPixel(i, 11, true);
+                    setPixel(3,  i, true); setPixel(11, i, true);
                 }
             }
             case "T" -> {
                 for (int i = 2; i < 13; i++) setPixel(i, 3, true);
                 for (int i = 3; i < 12; i++) setPixel(c, i, true);
             }
-            default -> {
-                for (int i = 0; i < GRID; i++) { setPixel(c, i, true); setPixel(i, c, true); }
-            }
+            default -> { for (int i = 0; i < GRID; i++) { setPixel(c, i, true); setPixel(i, c, true); } }
         }
     }
 
@@ -82,67 +70,63 @@ public class CustomCrosshairModule extends Module {
         String g = pixels.get();
         if (g == null) g = "";
         StringBuilder out = new StringBuilder(GRID * GRID);
-        for (int i = 0; i < GRID * GRID; i++) {
+        for (int i = 0; i < GRID * GRID; i++)
             out.append(i < g.length() && g.charAt(i) == '1' ? '1' : '0');
-        }
         return out.toString();
     }
 
     public void setPixels(String grid) {
         if (grid == null) grid = "";
         StringBuilder normalized = new StringBuilder(GRID * GRID);
-        for (int i = 0; i < GRID * GRID; i++) {
+        for (int i = 0; i < GRID * GRID; i++)
             normalized.append(i < grid.length() && grid.charAt(i) == '1' ? '1' : '0');
-        }
         pixels.set(normalized.toString());
     }
 
     public void mirrorHorizontal() {
         String g = normalizeGrid();
         StringBuilder out = new StringBuilder(GRID * GRID);
-        for (int y = 0; y < GRID; y++) {
+        for (int y = 0; y < GRID; y++)
             for (int x = 0; x < GRID; x++) out.append(g.charAt(y * GRID + (GRID - 1 - x)));
-        }
         pixels.set(out.toString());
     }
 
     public void mirrorVertical() {
         String g = normalizeGrid();
         StringBuilder out = new StringBuilder(GRID * GRID);
-        for (int y = 0; y < GRID; y++) {
+        for (int y = 0; y < GRID; y++)
             for (int x = 0; x < GRID; x++) out.append(g.charAt((GRID - 1 - y) * GRID + x));
-        }
         pixels.set(out.toString());
     }
 
     public void renderCrosshair(DrawContext context, int centerX, int centerY) {
         if (!isEnabled()) return;
-        int p = Math.max(1, scale.get());
-        int half = GRID / 2;
-        int alpha = Math.max(0, Math.min(255, opacity.get()));
-        int col = ColorUtil.setAlpha(color.get(), alpha);
-        int out = 0xFF000000 | (alpha << 24);
+        int p         = Math.max(1, scale.get());
+        int half      = GRID / 2;
+        int alpha     = Math.max(0, Math.min(255, opacity.get()));
+        int col       = ColorUtil.setAlpha(color.get(), alpha);
+        int outlineColor = ColorUtil.setAlpha(0x000000, alpha);
         String g = normalizeGrid();
         for (int y = 0; y < GRID; y++) {
             for (int x = 0; x < GRID; x++) {
                 if (g.charAt(y * GRID + x) != '1') continue;
                 int px = centerX + (x - half) * p;
                 int py = centerY + (y - half) * p;
-                if (outline.get()) RenderUtil.fill(context, px - 1, py - 1, px + p + 1, py + p + 1, out);
+                if (outline.get()) RenderUtil.fill(context, px - 1, py - 1, px + p + 1, py + p + 1, outlineColor);
                 RenderUtil.fill(context, px, py, px + p, py + p, col);
             }
         }
     }
 
-    public boolean shouldReplaceVanilla() { return isEnabled() && replaceVanilla.get(); }
-    public int getColor() { return color.get(); }
-    public void setColor(int value) { color.set(value & 0xFFFFFF); }
-    public int getOpacity() { return opacity.get(); }
-    public void setOpacity(int value) { opacity.set(Math.max(0, Math.min(255, value))); }
-    public int getScale() { return scale.get(); }
-    public void setScale(int value) { scale.set(Math.max(1, Math.min(8, value))); }
-    public boolean isOutline() { return outline.get(); }
-    public void setOutline(boolean value) { outline.set(value); }
-    public boolean isReplaceVanilla() { return replaceVanilla.get(); }
-    public void setReplaceVanilla(boolean value) { replaceVanilla.set(value); }
+    public boolean shouldReplaceVanilla()       { return isEnabled() && replaceVanilla.get(); }
+    public int     getColor()                   { return color.get(); }
+    public void    setColor(int value)          { color.set(value & 0xFFFFFF); }
+    public int     getOpacity()                 { return opacity.get(); }
+    public void    setOpacity(int value)        { opacity.set(Math.max(0, Math.min(255, value))); }
+    public int     getScale()                   { return scale.get(); }
+    public void    setScale(int value)          { scale.set(Math.max(1, Math.min(8, value))); }
+    public boolean isOutline()                  { return outline.get(); }
+    public void    setOutline(boolean value)    { outline.set(value); }
+    public boolean isReplaceVanilla()           { return replaceVanilla.get(); }
+    public void    setReplaceVanilla(boolean v) { replaceVanilla.set(v); }
 }
