@@ -12,7 +12,7 @@ import net.minecraft.text.Text;
 
 /**
  * Home screen — clean 2-column layout (Singleplayer | Multiplayer),
- * plus Accounts / Mods / Options / Quit. White transparent theme.
+ * plus Accounts / Mods / Options / Quit. The Host World entry is additive.
  */
 public class TitleScreenOverride extends Screen {
     public TitleScreenOverride() {
@@ -31,18 +31,20 @@ public class TitleScreenOverride extends Screen {
         int mid = width / 2;
         int y = height / 2 - 50;
 
-        // Row: Singleplayer | Multiplayer
+        // Existing rows — positions and behavior preserved.
         btn(c, mid - bw - gap / 2, y, bw, bh, "Singleplayer", mx, my);
         btn(c, mid + gap / 2, y, bw, bh, "Multiplayer", mx, my);
         y += bh + gap;
 
-        // Full-width rows
         int fullW = bw * 2 + gap;
         int x = mid - fullW / 2;
         btn(c, x, y, fullW, bh, "Accounts", mx, my); y += bh + gap;
         btn(c, x, y, fullW, bh, "Mods", mx, my); y += bh + gap;
         btn(c, x, y, fullW, bh, "Options", mx, my); y += bh + gap;
-        btn(c, x, y, fullW, bh, "Quit Game", mx, my);
+        btn(c, x, y, fullW, bh, "Quit Game", mx, my); y += bh + gap;
+
+        // Additive host entry; nothing above it is moved or repurposed.
+        btn(c, x, y, fullW, bh, "Host World", mx, my);
 
         super.render(c, mx, my, d);
     }
@@ -62,6 +64,7 @@ public class TitleScreenOverride extends Screen {
         int y = height / 2 - 50;
         double mx = click.x(), my = click.y();
 
+        // Existing interactions — unchanged.
         if (hit(mx, my, mid - bw - gap / 2, y, bw, bh)) {
             client.setScreen(new SelectWorldScreen(this)); return true;
         }
@@ -74,7 +77,10 @@ public class TitleScreenOverride extends Screen {
         if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new AccountsScreen(this)); return true; } y += bh + gap;
         if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new ModsScreen(this)); return true; } y += bh + gap;
         if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new OptionsScreen(this, client.options)); return true; } y += bh + gap;
-        if (hit(mx, my, x, y, fullW, bh)) { client.scheduleStop(); return true; }
+        if (hit(mx, my, x, y, fullW, bh)) { client.scheduleStop(); return true; } y += bh + gap;
+
+        // Additive host entry.
+        if (hit(mx, my, x, y, fullW, bh)) { client.setScreen(new HostWorldScreen(this)); return true; }
         return super.mouseClicked(click, doubled);
     }
 
