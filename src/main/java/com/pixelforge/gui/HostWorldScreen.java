@@ -4,8 +4,9 @@ import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
 import net.minecraft.server.integrated.IntegratedServer;
+import net.minecraft.text.Text;
+import net.minecraft.world.GameMode;
 
 /**
  * In-client local hosting controls. This deliberately uses Minecraft's integrated
@@ -40,10 +41,10 @@ public class HostWorldScreen extends Screen {
         int left = (width - w) / 2, top = (height - h) / 2;
         c.fill(0, 0, width, height, 0x66000000);
         c.fill(left, top, left + w, top + h, 0xE0101010);
-        c.drawBorder(left, top, w, h, 0x66FFFFFF);
-        drawCenteredText(c, textRenderer, "Host World", left + w / 2, top + 16, 0xFFFFFFFF);
-        drawCenteredText(c, textRenderer, status, left + w / 2, top + 42, 0xFFCCCCCC);
-        c.drawTextWithShadow(textRenderer, "Port", left + 40, top + 58, 0xFFAAAAAA);
+        border(c, left, top, w, h, 0x66FFFFFF);
+        c.drawCenteredTextWithShadow(textRenderer, Text.literal("Host World"), left + w / 2, top + 16, 0xFFFFFFFF);
+        c.drawCenteredTextWithShadow(textRenderer, Text.literal(status), left + w / 2, top + 42, 0xFFCCCCCC);
+        c.drawTextWithShadow(textRenderer, Text.literal("Port"), left + 40, top + 58, 0xFFAAAAAA);
 
         button(c, left + 175, top + 72, 145, 20, "Start Local Host", mx, my);
         button(c, left + 40, top + 108, 145, 20, "Launch Playit", mx, my);
@@ -51,15 +52,22 @@ public class HostWorldScreen extends Screen {
         button(c, left + 40, top + 144, 280, 20, "Back", mx, my);
 
         String info = "Playit requires the playit executable installed and available on PATH.";
-        c.drawTextWithShadow(textRenderer, info, left + 40, top + 184, 0xFF888888);
+        c.drawTextWithShadow(textRenderer, Text.literal(info), left + 40, top + 184, 0xFF888888);
         super.render(c, mx, my, delta);
+    }
+
+    private void border(DrawContext c, int x, int y, int w, int h, int color) {
+        c.fill(x, y, x + w, y + 1, color);
+        c.fill(x, y + h - 1, x + w, y + h, color);
+        c.fill(x, y, x + 1, y + h, color);
+        c.fill(x + w - 1, y, x + w, y + h, color);
     }
 
     private void button(DrawContext c, int x, int y, int w, int h, String text, int mx, int my) {
         boolean hover = mx >= x && mx <= x + w && my >= y && my <= y + h;
         c.fill(x, y, x + w, y + h, hover ? 0x40FFFFFF : 0x20FFFFFF);
-        c.drawBorder(x, y, w, h, hover ? 0xAAFFFFFF : 0x40FFFFFF);
-        drawCenteredText(c, textRenderer, text, x + w / 2, y + 6, 0xFFFFFFFF);
+        border(c, x, y, w, h, hover ? 0xAAFFFFFF : 0x40FFFFFF);
+        c.drawCenteredTextWithShadow(textRenderer, Text.literal(text), x + w / 2, y + 6, 0xFFFFFFFF);
     }
 
     @Override
@@ -108,7 +116,7 @@ public class HostWorldScreen extends Screen {
             return;
         }
         try {
-            boolean opened = server.openToLan(false, true, port);
+            boolean opened = server.openToLan(GameMode.SURVIVAL, true, port);
             status = opened ? "Hosting locally on port " + server.getServerPort() : "Could not open LAN";
         } catch (Throwable t) {
             status = "Host failed: " + t.getClass().getSimpleName();
