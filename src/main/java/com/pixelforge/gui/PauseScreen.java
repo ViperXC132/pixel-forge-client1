@@ -42,7 +42,7 @@ public class PauseScreen extends Screen {
         int y = top + 36;
         String[] labels = {
                 "Back to Game", "Mods", "Accounts", "Crosshair",
-                "HUD Editor", "Options", "Resource Packs", "ClickGUI", "Disconnect"
+                "HUD Editor", "Options", "Resource Packs", "ClickGUI", "Disconnect", "Host World"
         };
         for (String label : labels) {
             button(c, x, y, bw, bh, label, mx, my);
@@ -73,10 +73,8 @@ public class PauseScreen extends Screen {
         if (hit(click, x, y, bw, bh)) { client.setScreen(new OptionsScreen(this, client.options)); return true; } y += bh + gap;
         if (hit(click, x, y, bw, bh)) { openResourcePacks(); return true; } y += bh + gap;
         if (hit(click, x, y, bw, bh)) { client.setScreen(new ClickGui()); return true; } y += bh + gap;
-        if (hit(click, x, y, bw, bh)) {
-            client.disconnect(Text.literal("Disconnected"));
-            return true;
-        }
+        if (hit(click, x, y, bw, bh)) { client.disconnect(Text.literal("Disconnected")); return true; } y += bh + gap;
+        if (hit(click, x, y, bw, bh)) { client.setScreen(new HostWorldScreen(this)); return true; }
         return super.mouseClicked(click, doubled);
     }
 
