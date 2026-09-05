@@ -9,9 +9,12 @@ import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
 
 /**
- * In-client local hosting controls. This deliberately uses Minecraft's integrated
- * server so the singleplayer world remains authoritative; Playit is an optional
- * external tunnel process on top of that local port.
+ * In-client local hosting controls. This uses Minecraft's integrated server so the
+ * current singleplayer world remains authoritative. Playit is an optional tunnel
+ * on top of the local server and is never used as a replacement for it.
+ *
+ * Existing controls and their behavior are intentionally preserved; the extra
+ * status/details and stop control are additive.
  */
 public class HostWorldScreen extends Screen {
     private final Screen parent;
@@ -43,17 +46,51 @@ public class HostWorldScreen extends Screen {
         c.fill(left, top, left + w, top + h, 0xE0101010);
         border(c, left, top, w, h, 0x66FFFFFF);
         c.drawCenteredTextWithShadow(textRenderer, Text.literal("Host World"), left + w / 2, top + 16, 0xFFFFFFFF);
-        c.drawCenteredTextWithShadow(textRenderer, Text.literal(status), left + w / 2, top + 42, 0xFFCCCCCC);
+
+        String liveStatus = getLiveStatus();
+        c.drawCenteredTextWithShadow(textRenderer, Text.literal(liveStatus), left + w / 2, top + 42, 0xFFCCCCCC);
         c.drawTextWithShadow(textRenderer, Text.literal("Port"), left + 40, top + 58, 0xFFAAAAAA);
 
+        // Existing controls — same positions and behavior.
         button(c, left + 175, top + 72, 145, 20, "Start Local Host", mx, my);
         button(c, left + 40, top + 108, 145, 20, "Launch Playit", mx, my);
         button(c, left + 175, top + 108, 145, 20, "Stop Playit", mx, my);
         button(c, left + 40, top + 144, 280, 20, "Back", mx, my);
 
-        String info = "Playit requires the playit executable installed and available on PATH.";
-        c.drawTextWithShadow(textRenderer, Text.literal(info), left + 40, top + 184, 0xFF888888);
+        // Additive local-server management control.
+        button(c, left + 40, top + 168, 145, 20, "Stop Local Host", mx, my);
+
+        drawServerDetails(c, left + 40, top + 190, 280);
         super.render(c, mx, my, delta);
+    }
+
+    private String getLiveStatus() {
+        IntegratedServer server = client == null ? null : client.getServer();
+        if (server == null || !server.isRunning()) return status;
+        if (server.isRemote()) return "Hosting locally on port " + server.getServerPort();
+        return status.startsWith("Hosting locally")
+                ? status
+                : "Server running on port " + server.getServerPort();
+    }
+
+    private void drawServerDetails(DrawContext c, int x, int y, int maxWidth) {
+        IntegratedServer server = client == null ? null : client.getServer();
+        if (server == null || !server.isRunning()) {
+            c.drawTextWithShadow(textRenderer, Text.literal("Server: offline"), x, y, 0xFF888888);
+            return;
+        }
+
+        int players = server.getPlayerManager().getCurrentPlayerCount();
+        int maxPlayers = server.getPlayerManager().getMaxPlayerCount();
+        String address = "127.0.0.1:" + server.getServerPort();
+        c.drawTextWithShadow(textRenderer,
+                Text.literal("Local: " + address + "  •  Players: " + players + "/" + maxPlayers),
+                x, y, 0xFFAAAAAA);
+
+        String[] names = server.getPlayerManager().getPlayerNames();
+        String playerText = names.length == 0 ? "Players: none connected" : "Players: " + String.join(", ", names);
+        if (playerText.length() > 58) playerText = playerText.substring(0, 55) + "...";
+        c.drawTextWithShadow(textRenderer, Text.literal(playerText), x, y + 10, 0xFF888888);
     }
 
     private void border(DrawContext c, int x, int y, int w, int h, int color) {
@@ -77,6 +114,7 @@ public class HostWorldScreen extends Screen {
         int left = (width - w) / 2, top = (height - h) / 2;
         double x = click.x(), y = click.y();
 
+        // Existing controls — unchanged.
         if (x >= left + 175 && x <= left + 320 && y >= top + 72 && y <= top + 92) {
             startHost();
             return true;
@@ -92,6 +130,12 @@ public class HostWorldScreen extends Screen {
         if (x >= left + 40 && x <= left + 320 && y >= top + 144 && y <= top + 164) {
             stopPlayit();
             client.setScreen(parent);
+            return true;
+        }
+
+        // Additive local-server stop.
+        if (x >= left + 40 && x <= left + 185 && y >= top + 168 && y <= top + 188) {
+            stopLocalHost();
             return true;
         }
         return super.mouseClicked(click, doubled);
@@ -120,6 +164,22 @@ public class HostWorldScreen extends Screen {
             status = opened ? "Hosting locally on port " + server.getServerPort() : "Could not open LAN";
         } catch (Throwable t) {
             status = "Host failed: " + t.getClass().getSimpleName();
+        }
+    }
+
+    private void stopLocalHost() {
+        IntegratedServer server = client == null ? null : client.getServer();
+        if (server == null || !server.isRunning()) {
+            status = "Local host is already offline";
+            return;
+        }
+        try {
+            // Minecraft 1.21.11 exposes this directly. false avoids waiting from the client thread.
+            server.stop(false);
+            stopPlayit();
+            status = "Local host stopped";
+        } catch (Throwable t) {
+            status = "Stop failed: " + t.getClass().getSimpleName();
         }
     }
 
