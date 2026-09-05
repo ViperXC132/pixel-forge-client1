@@ -20,13 +20,13 @@ public abstract class Module {
     protected final MinecraftClient mc=MinecraftClient.getInstance();
     private final String name; private final String description; private final Category category; private boolean enabled; private int keybind;
     private final List<Setting<?>> settings=new ArrayList<>();
-    private Double previousGamma; private Integer previousFov; private int cleanerTicks; private boolean previousLeft; private int cpsClicks; private long cpsWindow; private boolean previousUse; private boolean previousAttack;
+    private Integer previousFov; private int cleanerTicks; private boolean previousLeft; private int cpsClicks; private long cpsWindow; private boolean previousUse; private boolean previousAttack;
     public Module(String name,String description,Category category){this.name=name;this.description=description;this.category=category;this.enabled=false;this.keybind=-1;}
     public void toggle(){setEnabled(!enabled);}
     public void setEnabled(boolean enabled){if(this.enabled==enabled)return;this.enabled=enabled;try{if(enabled)onEnable();else onDisable();}catch(Throwable t){PixelForgeClient.LOGGER.error("Module {} lifecycle failed",name,t);}if(PixelForgeClient.getInstance()!=null&&PixelForgeClient.getInstance().getNotificationManager()!=null)PixelForgeClient.getInstance().getNotificationManager().push(name+(enabled?" enabled":" disabled"),enabled?0x55FF55:0xFF5555);try{ConfigManager.saveModule(this);}catch(Throwable ignored){}}
     private String id(){return name.replaceAll("[^A-Za-z0-9]","").toLowerCase(Locale.ROOT);}
-    public void onEnable(){if(mc==null)return;if(id().equals("fullbright")){previousGamma=mc.options.getGamma().getValue();mc.options.getGamma().setValue(16.0);}if(id().equals("fovchanger")){previousFov=mc.options.getFov().getValue();mc.options.getFov().setValue(110);}if(id().equals("cpstrainer")){cpsClicks=0;cpsWindow=System.currentTimeMillis();}}
-    public void onDisable(){if(mc==null)return;if(id().equals("fullbright")&&previousGamma!=null){mc.options.getGamma().setValue(previousGamma);previousGamma=null;}if(id().equals("fovchanger")&&previousFov!=null){mc.options.getFov().setValue(previousFov);previousFov=null;}if(id().equals("togglesprint")&&mc.player!=null)mc.player.setSprinting(false);if(id().equals("togglesneak")&&mc.player!=null)mc.player.setSneaking(false);}
+    public void onEnable(){if(mc==null)return;if(id().equals("fovchanger")){previousFov=mc.options.getFov().getValue();mc.options.getFov().setValue(110);}if(id().equals("cpstrainer")){cpsClicks=0;cpsWindow=System.currentTimeMillis();}}
+    public void onDisable(){if(mc==null)return;if(id().equals("fovchanger")&&previousFov!=null){mc.options.getFov().setValue(previousFov);previousFov=null;}if(id().equals("togglesprint")&&mc.player!=null)mc.player.setSprinting(false);if(id().equals("togglesneak")&&mc.player!=null)mc.player.setSneaking(false);}
     public void onTick(){
         if(mc==null||mc.player==null)return;
         switch(id()){
@@ -36,7 +36,6 @@ public abstract class Module {
             case "memorycleaner" -> {if(++cleanerTicks>=200){cleanerTicks=0;System.gc();}}
             case "autotool" -> autoTool();
             case "fastplace" -> setItemUseCooldown(0);
-            case "fullbright" -> {if(mc.options.getGamma().getValue()<16.0)mc.options.getGamma().setValue(16.0);}
             case "fovchanger" -> {if(mc.options.getFov().getValue()!=110)mc.options.getFov().setValue(110);}
             case "noparticles" -> setMinimalParticles();
             case "cpstrainer" -> tickCpsTrainer();
