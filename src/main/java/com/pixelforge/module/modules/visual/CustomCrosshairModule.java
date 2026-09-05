@@ -6,18 +6,91 @@ import com.pixelforge.util.ColorUtil;
 import com.pixelforge.util.RenderUtil;
 import net.minecraft.client.gui.DrawContext;
 
-/** Fully configurable custom crosshair. */
+/** Pixel-perfect 15x15 crosshair renderer. The editor owns the pixels; no old shape system remains. */
 public class CustomCrosshairModule extends Module {
-    public enum Style { CROSS, DOT, CIRCLE, CROSS_DOT, GAP, CUSTOM }
-    private Style style=Style.CROSS; private int color=0xFFFFFFFF,opacity=230,size=6,thickness=2,gap=3;
-    private boolean replaceVanilla=true,outline=true; private int outlineColor=0xFF000000;
-    private int customTop=6,customBottom=6,customLeft=6,customRight=6; private boolean customDot=true;
-    public CustomCrosshairModule(){super("Custom Crosshair","Fully customizable crosshair — replaces vanilla",Category.VISUAL);}
-    public void renderCrosshair(DrawContext context,int centerX,int centerY){if(!isEnabled())return;int col=ColorUtil.setAlpha(color,opacity),out=ColorUtil.setAlpha(outlineColor,opacity);switch(style){case DOT->{int r=Math.max(1,thickness);if(outline)fillBox(context,centerX-r-1,centerY-r-1,centerX+r+1,centerY+r+1,out);fillBox(context,centerX-r,centerY-r,centerX+r,centerY+r,col);}case CIRCLE->drawCircle(context,centerX,centerY,size,thickness,col,outline?out:0);case CROSS_DOT->{drawCross(context,centerX,centerY,size,thickness,gap,col,outline?out:0);int r=Math.max(1,thickness);fillBox(context,centerX-r,centerY-r,centerX+r,centerY+r,col);}case GAP->drawCross(context,centerX,centerY,size,thickness,gap,col,outline?out:0);case CUSTOM->drawCustom(context,centerX,centerY,col,outline?out:0);default->drawCross(context,centerX,centerY,size,thickness,0,col,outline?out:0);}}
-    private void drawCross(DrawContext c,int cx,int cy,int len,int th,int g,int col,int out){int half=th/2;if(out!=0){fillBox(c,cx-len-g-1,cy-half-1,cx-g+1,cy+half+1,out);fillBox(c,cx+g-1,cy-half-1,cx+len+g+1,cy+half+1,out);fillBox(c,cx-half-1,cy-len-g-1,cx+half+1,cy-g+1,out);fillBox(c,cx-half-1,cy+g-1,cx+half+1,cy+len+g+1,out);}fillBox(c,cx-len-g,cy-half,cx-g,cy+half+(th%2==0?0:1),col);fillBox(c,cx+g+1,cy-half,cx+len+g+1,cy+half+(th%2==0?0:1),col);fillBox(c,cx-half,cy-len-g,cx+half+(th%2==0?0:1),cy-g,col);fillBox(c,cx-half,cy+g+1,cx+half+(th%2==0?0:1),cy+len+g+1,col);}
-    private void drawCustom(DrawContext c,int cx,int cy,int col,int out){int th=thickness,half=th/2,g=gap;if(out!=0){if(customLeft>0)fillBox(c,cx-customLeft-g-1,cy-half-1,cx-g+1,cy+half+1,out);if(customRight>0)fillBox(c,cx+g-1,cy-half-1,cx+customRight+g+1,cy+half+1,out);if(customTop>0)fillBox(c,cx-half-1,cy-customTop-g-1,cx+half+1,cy-g+1,out);if(customBottom>0)fillBox(c,cx-half-1,cy+g-1,cx+half+1,cy+customBottom+g+1,out);}if(customLeft>0)fillBox(c,cx-customLeft-g,cy-half,cx-g,cy+half+1,col);if(customRight>0)fillBox(c,cx+g+1,cy-half,cx+customRight+g+1,cy+half+1,col);if(customTop>0)fillBox(c,cx-half,cy-customTop-g,cx+half+1,cy-g,col);if(customBottom>0)fillBox(c,cx-half,cy+g+1,cx+half+1,cy+customBottom+g+1,col);if(customDot){int r=Math.max(1,th);fillBox(c,cx-r,cy-r,cx+r,cy+r,col);}}
-    private void drawCircle(DrawContext c,int cx,int cy,int radius,int th,int col,int out){for(int i=-radius-1;i<=radius+1;i++)for(int j=-radius-1;j<=radius+1;j++){int d2=i*i+j*j,outer=radius*radius,inner=Math.max(0,radius-th)*Math.max(0,radius-th);if(d2<=outer&&d2>=inner){boolean edge=d2>outer-radius||d2<inner+radius;RenderUtil.fill(c,cx+i,cy+j,cx+i+1,cy+j+1,edge&&out!=0?out:col);}}}
-    private void fillBox(DrawContext c,int x1,int y1,int x2,int y2,int color){if(x2>x1&&y2>y1)RenderUtil.fill(c,x1,y1,x2,y2,color);}
-    public boolean shouldReplaceVanilla(){return isEnabled()&&replaceVanilla;}
-    public Style getStyle(){return style;}public void setStyle(Style v){style=v;}public int getColor(){return color;}public void setColor(int v){color=v;}public int getOpacity(){return opacity;}public void setOpacity(int v){opacity=Math.max(0,Math.min(255,v));}public int getSize(){return size;}public void setSize(int v){size=Math.max(1,Math.min(32,v));}public int getThickness(){return thickness;}public void setThickness(int v){thickness=Math.max(1,Math.min(8,v));}public int getGap(){return gap;}public void setGap(int v){gap=Math.max(0,Math.min(16,v));}public boolean isOutline(){return outline;}public void setOutline(boolean v){outline=v;}public boolean isReplaceVanilla(){return replaceVanilla;}public void setReplaceVanilla(boolean v){replaceVanilla=v;}public int getCustomTop(){return customTop;}public void setCustomTop(int v){customTop=Math.max(0,Math.min(24,v));}public int getCustomBottom(){return customBottom;}public void setCustomBottom(int v){customBottom=Math.max(0,Math.min(24,v));}public int getCustomLeft(){return customLeft;}public void setCustomLeft(int v){customLeft=Math.max(0,Math.min(24,v));}public int getCustomRight(){return customRight;}public void setCustomRight(int v){customRight=Math.max(0,Math.min(24,v));}public boolean isCustomDot(){return customDot;}public void setCustomDot(boolean v){customDot=v;}
+    public static final int GRID = 15;
+    private final Setting<String> pixels = addSetting(new Setting<>("Pixel grid", defaultGrid()));
+    private final Setting<Integer> color = addSetting(new Setting<>("Color", 0xFFFFFF, 0, 0xFFFFFF));
+    private final Setting<Integer> opacity = addSetting(new Setting<>("Opacity", 230, 0, 255));
+    private final Setting<Integer> scale = addSetting(new Setting<>("Pixel scale", 2, 1, 8));
+    private final Setting<Boolean> outline = addSetting(new Setting<>("Outline", true));
+    private final Setting<Boolean> replaceVanilla = addSetting(new Setting<>("Replace vanilla", true));
+
+    public CustomCrosshairModule() {
+        super("Custom Crosshair", "Draw a crosshair pixel-by-pixel on a 15x15 canvas", Category.VISUAL);
+    }
+
+    private static String defaultGrid() {
+        StringBuilder s = new StringBuilder(GRID * GRID);
+        int c = GRID / 2;
+        for (int y = 0; y < GRID; y++) for (int x = 0; x < GRID; x++)
+            s.append(x == c || y == c ? '1' : '0');
+        return s.toString();
+    }
+
+    public boolean isPixelSet(int x, int y) {
+        if (x < 0 || y < 0 || x >= GRID || y >= GRID) return false;
+        String g = pixels.get();
+        int i = y * GRID + x;
+        return i < g.length() && g.charAt(i) == '1';
+    }
+
+    public void setPixel(int x, int y, boolean value) {
+        if (x < 0 || y < 0 || x >= GRID || y >= GRID) return;
+        StringBuilder g = new StringBuilder(normalizeGrid());
+        g.setCharAt(y * GRID + x, value ? '1' : '0');
+        pixels.set(g.toString());
+    }
+
+    public void clearGrid() { pixels.set("0".repeat(GRID * GRID)); }
+    public void fillGrid() { pixels.set("1".repeat(GRID * GRID)); }
+
+    public void applyPreset(String name) {
+        clearGrid();
+        int c = GRID / 2;
+        switch (name) {
+            case "Dot" -> setPixel(c, c, true);
+            case "Plus" -> { for (int i = 2; i < 13; i++) { setPixel(c, i, true); setPixel(i, c, true); } }
+            case "X" -> { for (int i = 2; i < 13; i++) { setPixel(i, i, true); setPixel(14 - i, i, true); } }
+            case "Square" -> { for (int i = 3; i < 12; i++) { setPixel(i, 3, true); setPixel(i, 11, true); setPixel(3, i, true); setPixel(11, i, true); } }
+            case "T" -> { for (int i = 2; i < 13; i++) setPixel(i, 3, true); for (int i = 3; i < 12; i++) setPixel(c, i, true); }
+            default -> { for (int i = 0; i < GRID; i++) { setPixel(c, i, true); setPixel(i, c, true); } }
+        }
+    }
+
+    public String normalizeGrid() {
+        String g = pixels.get();
+        if (g == null) g = "";
+        StringBuilder out = new StringBuilder(GRID * GRID);
+        for (int i = 0; i < GRID * GRID; i++) out.append(i < g.length() && g.charAt(i) == '1' ? '1' : '0');
+        return out.toString();
+    }
+
+    public void renderCrosshair(DrawContext context, int centerX, int centerY) {
+        if (!isEnabled()) return;
+        int p = Math.max(1, scale.get());
+        int half = GRID / 2;
+        int col = ColorUtil.setAlpha(color.get(), Math.max(0, Math.min(255, opacity.get())));
+        int out = 0xFF000000 | (Math.max(0, Math.min(255, opacity.get())) << 24);
+        String g = normalizeGrid();
+        for (int y = 0; y < GRID; y++) for (int x = 0; x < GRID; x++) {
+            if (g.charAt(y * GRID + x) != '1') continue;
+            int px = centerX + (x - half) * p;
+            int py = centerY + (y - half) * p;
+            if (outline.get()) RenderUtil.fill(context, px - 1, py - 1, px + p + 1, py + p + 1, out);
+            RenderUtil.fill(context, px, py, px + p, py + p, col);
+        }
+    }
+
+    public boolean shouldReplaceVanilla() { return isEnabled() && replaceVanilla.get(); }
+    public int getColor() { return color.get(); }
+    public void setColor(int v) { color.set(v & 0xFFFFFF); }
+    public int getOpacity() { return opacity.get(); }
+    public void setOpacity(int v) { opacity.set(Math.max(0, Math.min(255, v))); }
+    public int getScale() { return scale.get(); }
+    public void setScale(int v) { scale.set(Math.max(1, Math.min(8, v))); }
+    public boolean isOutline() { return outline.get(); }
+    public void setOutline(boolean v) { outline.set(v); }
+    public boolean isReplaceVanilla() { return replaceVanilla.get(); }
+    public void setReplaceVanilla(boolean v) { replaceVanilla.set(v); }
 }
