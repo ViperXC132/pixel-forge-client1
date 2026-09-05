@@ -10,7 +10,8 @@
     "InGameHudMixin",
     "MinecraftClientAccessor",
     "MinecraftClientMixin",
-    "GameMenuScreenMixin"
+    "GameMenuScreenMixin",
+    "LightmapTextureManagerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
