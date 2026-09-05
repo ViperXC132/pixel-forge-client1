@@ -10,7 +10,6 @@ import net.minecraft.client.gui.DrawContext;
 public class CustomCrosshairModule extends Module {
     public static final int GRID = 15;
 
-    /** Compatibility enum used by the existing crosshair screen. CUSTOM is the pixel editor mode. */
     public enum Style { CROSS, DOT, CIRCLE, CROSS_DOT, GAP, CUSTOM }
 
     private final Setting<String> pixels = addSetting(new Setting<>("Pixel grid", defaultGrid()));
@@ -20,7 +19,7 @@ public class CustomCrosshairModule extends Module {
     private final Setting<Boolean> outline = addSetting(new Setting<>("Outline", true));
     private final Setting<Boolean> replaceVanilla = addSetting(new Setting<>("Replace vanilla", true));
 
-    // Compatibility state for older CrosshairScreen builds. The renderer remains pixel-grid based.
+    // Compatibility state for the existing CrosshairScreen API.
     private Style style = Style.CUSTOM;
     private int size = 5;
     private int thickness = 1;
@@ -38,8 +37,7 @@ public class CustomCrosshairModule extends Module {
     private static String defaultGrid() {
         StringBuilder s = new StringBuilder(GRID * GRID);
         int c = GRID / 2;
-        for (int y = 0; y < GRID; y++) for (int x = 0; x < GRID; x++)
-            s.append(x == c || y == c ? '1' : '0');
+        for (int y = 0; y < GRID; y++) for (int x = 0; x < GRID; x++) s.append(x == c || y == c ? '1' : '0');
         return s.toString();
     }
 
@@ -137,20 +135,22 @@ public class CustomCrosshairModule extends Module {
         Style[] values = Style.values();
         style = values[Math.max(0, Math.min(values.length - 1, value))];
     }
+    public void setStyle(Style value) { if (value != null) style = value; }
     public int getSize() { return size; }
-    public void setSize(int value) { size = Math.max(1, Math.min(20, value)); }
+    public void setSize(int value) { size = Math.max(1, Math.min(32, value)); }
     public int getThickness() { return thickness; }
-    public void setThickness(int value) { thickness = Math.max(1, Math.min(10, value)); }
+    public void setThickness(int value) { thickness = Math.max(1, Math.min(8, value)); }
     public int getGap() { return gap; }
-    public void setGap(int value) { gap = Math.max(0, Math.min(20, value)); }
+    public void setGap(int value) { gap = Math.max(0, Math.min(16, value)); }
     public int getCustomTop() { return customTop; }
-    public void setCustomTop(int value) { customTop = Math.max(0, Math.min(GRID, value)); }
+    public void setCustomTop(int value) { customTop = Math.max(0, Math.min(24, value)); }
     public int getCustomBottom() { return customBottom; }
-    public void setCustomBottom(int value) { customBottom = Math.max(0, Math.min(GRID, value)); }
+    public void setCustomBottom(int value) { customBottom = Math.max(0, Math.min(24, value)); }
     public int getCustomLeft() { return customLeft; }
-    public void setCustomLeft(int value) { customLeft = Math.max(0, Math.min(GRID, value)); }
+    public void setCustomLeft(int value) { customLeft = Math.max(0, Math.min(24, value)); }
     public int getCustomRight() { return customRight; }
-    public void setCustomRight(int value) { customRight = Math.max(0, Math.min(GRID, value)); }
+    public void setCustomRight(int value) { customRight = Math.max(0, Math.min(24, value)); }
     public boolean isCustomDot() { return customDot; }
     public void setCustomDot() { customDot = !customDot; }
+    public void setCustomDot(boolean value) { customDot = value; }
 }
